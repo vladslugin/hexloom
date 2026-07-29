@@ -11,6 +11,8 @@ std::string_view to_string(AgentProvider provider) {
             return "codex";
         case AgentProvider::claude:
             return "claude";
+        case AgentProvider::gemini:
+            return "gemini";
     }
     return "unknown";
 }
@@ -43,6 +45,9 @@ std::optional<AgentProvider> parse_agent_provider(
     }
     if (value == "claude") {
         return AgentProvider::claude;
+    }
+    if (value == "gemini") {
+        return AgentProvider::gemini;
     }
     return std::nullopt;
 }
@@ -87,6 +92,23 @@ AgentLaunchPlan make_cli_launch_plan(
                         ? "plan"
                         : "acceptEdits",
                     std::move(prompt),
+                },
+                .transport = AgentTransport::json_lines,
+                .reuses_user_login = true,
+            };
+        case AgentProvider::gemini:
+            return {
+                .provider = provider,
+                .executable = "gemini",
+                .arguments = {
+                    "--prompt",
+                    std::move(prompt),
+                    "--output-format",
+                    "stream-json",
+                    "--approval-mode",
+                    access == AgentAccess::read_only
+                        ? "plan"
+                        : "auto_edit",
                 },
                 .transport = AgentTransport::json_lines,
                 .reuses_user_login = true,

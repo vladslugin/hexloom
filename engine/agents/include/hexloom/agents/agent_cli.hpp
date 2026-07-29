@@ -11,6 +11,7 @@ namespace hexloom::agents {
 enum class AgentProvider {
     codex,
     claude,
+    gemini,
 };
 
 enum class AgentAccess {

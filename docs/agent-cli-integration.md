@@ -16,10 +16,13 @@ Agent process supervisor
         |
         +---- Claude adapter --- `claude -p --output-format stream-json`
         |
+        +---- Gemini adapter --- `gemini -p --output-format stream-json`
+        |
         +---- ACP adapter ------ JSON-RPC over stdio (planned)
 ```
 
-`AgentLaunchPlan` is the first provider-neutral boundary. It produces an
+`AgentLaunchPlan` is the first provider-neutral boundary for Codex, Claude, and
+Gemini. It produces an
 executable and an argv array, never a shell command string. This prevents prompt
 text from being interpreted as shell syntax. Read-only access is the default;
 workspace writes must be explicitly selected by the orchestrator and visible in
@@ -55,6 +58,7 @@ to the operating system:
 ```sh
 hexloom agent-plan codex read "Review the material specification"
 hexloom agent-plan claude write "Implement the selected mechanic"
+hexloom agent-plan gemini read "Review the material specification"
 hexloom agent-run codex read . "Review the material specification"
 ```
 
@@ -75,4 +79,5 @@ after that backend.
 - [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode)
 - [Codex App Server](https://learn.chatgpt.com/docs/app-server)
 - [Claude Code CLI reference](https://code.claude.com/docs/en/cli-usage)
+- [Gemini CLI headless mode](https://google-gemini.github.io/gemini-cli/docs/cli/headless.html)
 - [Agent Client Protocol introduction](https://agentclientprotocol.com/get-started/introduction)

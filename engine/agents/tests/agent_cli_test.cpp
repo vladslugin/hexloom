@@ -64,6 +64,29 @@ int main(int argc, char** argv) {
         "unknown providers should be rejected"
     );
 
+    const auto gemini = hexloom::agents::make_cli_launch_plan(
+        AgentProvider::gemini,
+        AgentAccess::read_only,
+        "review the architecture"
+    );
+    check(
+        gemini.executable == "gemini",
+        "Gemini executable should be stable"
+    );
+    check(
+        gemini.arguments[3] == "stream-json",
+        "Gemini should emit streaming JSON"
+    );
+    check(
+        gemini.arguments[5] == "plan",
+        "Gemini read access should use plan mode"
+    );
+    check(
+        hexloom::agents::parse_agent_provider("gemini") ==
+            AgentProvider::gemini,
+        "Gemini provider should parse"
+    );
+
     bool empty_prompt_rejected = false;
     try {
         static_cast<void>(hexloom::agents::make_cli_launch_plan(

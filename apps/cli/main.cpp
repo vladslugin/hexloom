@@ -20,8 +20,9 @@ void print_usage() {
         << "Usage:\n"
         << "  hexloom validate <game.yaml>\n"
         << "  hexloom generate-textures <game.yaml> <output-dir> [seed]\n"
-        << "  hexloom agent-plan <codex|claude> <read|write> <prompt>\n"
-        << "  hexloom agent-run <codex|claude> <read|write> "
+        << "  hexloom agent-plan <codex|claude|gemini> "
+           "<read|write> <prompt>\n"
+        << "  hexloom agent-run <codex|claude|gemini> <read|write> "
            "<workspace> <prompt>\n";
 }
 
@@ -123,7 +124,8 @@ int agent_plan_command(
     const auto provider =
         hexloom::agents::parse_agent_provider(provider_name);
     if (!provider.has_value()) {
-        std::cerr << "Agent provider must be 'codex' or 'claude'.\n";
+        std::cerr
+            << "Agent provider must be 'codex', 'claude', or 'gemini'.\n";
         return 2;
     }
 
@@ -157,7 +159,8 @@ int agent_run_command(
     const auto provider =
         hexloom::agents::parse_agent_provider(provider_name);
     if (!provider.has_value()) {
-        std::cerr << "Agent provider must be 'codex' or 'claude'.\n";
+        std::cerr
+            << "Agent provider must be 'codex', 'claude', or 'gemini'.\n";
         return 2;
     }
     const auto access = parse_agent_access(access_name);
