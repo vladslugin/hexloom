@@ -55,9 +55,15 @@ to the operating system:
 ```sh
 hexloom agent-plan codex read "Review the material specification"
 hexloom agent-plan claude write "Implement the selected mechanic"
+hexloom agent-run codex read . "Review the material specification"
 ```
 
-The first process-supervisor layer now launches argv directly on macOS/Linux,
+`agent-run` is the first end-to-end entry point. It streams the provider's raw
+JSONL to stdout and diagnostics to stderr, preserves the CLI exit code, and
+applies a ten-minute safety timeout. One-shot jobs receive a closed standard
+input so provider CLIs cannot accidentally wait for terminal input.
+
+The first process-supervisor layer launches argv directly on macOS/Linux,
 captures and streams stdout and stderr separately, preserves exit status,
 supports cancellation, terminates the complete child process group, and
 enforces timeouts. Windows has the same public interface; its native backend is

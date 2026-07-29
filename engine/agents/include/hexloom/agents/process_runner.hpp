@@ -24,6 +24,7 @@ struct ProcessRequest {
     std::vector<std::string> arguments;
     std::filesystem::path working_directory;
     std::chrono::milliseconds timeout{0};
+    bool inherit_standard_input = false;
 };
 
 struct ProcessResult {

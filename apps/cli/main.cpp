@@ -1,11 +1,14 @@
 #include "hexloom/agents/agent_cli.hpp"
+#include "hexloom/agents/process_runner.hpp"
 #include "hexloom/core/material_spec_loader.hpp"
 #include "hexloom/generation/texture_generator.hpp"
 
 #include <charconv>
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -17,7 +20,9 @@ void print_usage() {
         << "Usage:\n"
         << "  hexloom validate <game.yaml>\n"
         << "  hexloom generate-textures <game.yaml> <output-dir> [seed]\n"
-        << "  hexloom agent-plan <codex|claude> <read|write> <prompt>\n";
+        << "  hexloom agent-plan <codex|claude> <read|write> <prompt>\n"
+        << "  hexloom agent-run <codex|claude> <read|write> "
+           "<workspace> <prompt>\n";
 }
 
 void print_specification_issues(
@@ -99,6 +104,17 @@ int generate_command(
     return 0;
 }
 
+[[nodiscard]] std::optional<hexloom::agents::AgentAccess>
+parse_agent_access(std::string_view access_name) {
+    if (access_name == "read") {
+        return hexloom::agents::AgentAccess::read_only;
+    }
+    if (access_name == "write") {
+        return hexloom::agents::AgentAccess::workspace_write;
+    }
+    return std::nullopt;
+}
+
 int agent_plan_command(
     std::string_view provider_name,
     std::string_view access_name,
@@ -111,12 +127,8 @@ int agent_plan_command(
         return 2;
     }
 
-    hexloom::agents::AgentAccess access;
-    if (access_name == "read") {
-        access = hexloom::agents::AgentAccess::read_only;
-    } else if (access_name == "write") {
-        access = hexloom::agents::AgentAccess::workspace_write;
-    } else {
+    const auto access = parse_agent_access(access_name);
+    if (!access.has_value()) {
         std::cerr << "Agent access must be 'read' or 'write'.\n";
         return 2;
     }
@@ -124,11 +136,69 @@ int agent_plan_command(
     try {
         const auto plan = hexloom::agents::make_cli_launch_plan(
             *provider,
-            access,
+            *access,
             std::move(prompt)
         );
         std::cout << hexloom::agents::format_launch_plan(plan);
         return 0;
+    } catch (const std::invalid_argument& error) {
+        std::cerr << error.what() << '\n';
+        return 2;
+    }
+}
+
+int agent_run_command(
+    std::string_view provider_name,
+    std::string_view access_name,
+    const std::filesystem::path& workspace,
+    std::string prompt
+) {
+    using namespace std::chrono_literals;
+    const auto provider =
+        hexloom::agents::parse_agent_provider(provider_name);
+    if (!provider.has_value()) {
+        std::cerr << "Agent provider must be 'codex' or 'claude'.\n";
+        return 2;
+    }
+    const auto access = parse_agent_access(access_name);
+    if (!access.has_value()) {
+        std::cerr << "Agent access must be 'read' or 'write'.\n";
+        return 2;
+    }
+
+    try {
+        const auto plan = hexloom::agents::make_cli_launch_plan(
+            *provider,
+            *access,
+            std::move(prompt)
+        );
+        const auto result = hexloom::agents::run_process(
+            {
+                .executable = plan.executable,
+                .arguments = plan.arguments,
+                .working_directory = workspace,
+                .timeout = 10min,
+            },
+            [](const hexloom::agents::ProcessOutput& output) {
+                auto& stream =
+                    output.stream ==
+                            hexloom::agents::ProcessStream::standard_output
+                        ? std::cout
+                        : std::cerr;
+                stream << output.data << std::flush;
+            }
+        );
+
+        if (!result.launch_error.empty()) {
+            std::cerr << "Agent launch failed: "
+                      << result.launch_error << '\n';
+            return 1;
+        }
+        if (result.timed_out) {
+            std::cerr << "Agent exceeded the 10 minute timeout.\n";
+            return 124;
+        }
+        return result.exit_code;
     } catch (const std::invalid_argument& error) {
         std::cerr << error.what() << '\n';
         return 2;
@@ -154,6 +224,10 @@ int main(int argc, char** argv) {
 
     if (argc == 5 && std::string_view(argv[1]) == "agent-plan") {
         return agent_plan_command(argv[2], argv[3], argv[4]);
+    }
+
+    if (argc == 6 && std::string_view(argv[1]) == "agent-run") {
+        return agent_run_command(argv[2], argv[3], argv[4], argv[5]);
     }
 
     print_usage();

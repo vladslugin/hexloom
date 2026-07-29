@@ -16,6 +16,9 @@ int run_process_child(std::string_view mode) {
         std::this_thread::sleep_for(std::chrono::seconds(2));
         return 0;
     }
+    if (mode == "--process-child-check-stdin") {
+        return std::cin.get() == std::char_traits<char>::eof() ? 0 : 8;
+    }
     return -1;
 }
 
@@ -52,6 +55,17 @@ int run_process_runner_tests(const std::string& executable) {
         "stderr should be captured separately"
     );
     check(output_events >= 2, "output should be streamed to the callback");
+
+    const auto closed_input = hexloom::agents::run_process({
+        .executable = executable,
+        .arguments = {"--process-child-check-stdin"},
+        .working_directory = std::filesystem::current_path(),
+        .timeout = 2s,
+    });
+    check(
+        closed_input.ok(),
+        "one-shot child should receive end-of-file on standard input"
+    );
 
     const auto timed_out = hexloom::agents::run_process({
         .executable = executable,

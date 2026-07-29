@@ -51,6 +51,8 @@ ctest --preset desktop-debug
   42
 ./build/desktop-debug/apps/cli/hexloom agent-plan \
   codex read "Review the material specification"
+./build/desktop-debug/apps/cli/hexloom agent-run \
+  claude read . "Summarize the project architecture"
 godot --path godot/material-lab
 ```
 

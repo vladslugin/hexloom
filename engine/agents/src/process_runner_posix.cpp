@@ -191,6 +191,16 @@ ProcessResult run_process(
         error_read.reset();
         static_cast<void>(setpgid(0, 0));
 
+        FileDescriptor null_input;
+        if (!request.inherit_standard_input) {
+            null_input = FileDescriptor(open("/dev/null", O_RDONLY));
+            if (null_input.get() < 0 ||
+                dup2(null_input.get(), STDIN_FILENO) < 0) {
+                report_child_error(error_write.get(), errno);
+                _exit(127);
+            }
+        }
+
         if (dup2(stdout_write.get(), STDOUT_FILENO) < 0 ||
             dup2(stderr_write.get(), STDERR_FILENO) < 0) {
             report_child_error(error_write.get(), errno);
