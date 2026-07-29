@@ -6,6 +6,9 @@ Hexloom is an AI-first game creation studio. Specialized agents will
 design mechanics, generate C++ code and assets, assemble Godot projects, run
 tests, and build games for desktop and mobile platforms.
 
+Every change is checked on Linux against the C++ test suite, the CLI, and a
+real headless Godot 4.7.1 process loading the native GDExtension.
+
 ## First vertical slice
 
 The first milestone intentionally covers one complete workflow:
@@ -34,12 +37,16 @@ Requirements:
 cmake --preset desktop-debug
 cmake --build --preset desktop-debug
 ctest --preset desktop-debug
-./build/desktop-debug/apps/cli/hexloom
+./build/desktop-debug/apps/cli/hexloom validate games/material-lab/game.yaml
 godot --path godot/material-lab
 ```
 
 The desktop preset builds a deliberately trimmed `godot-cpp` API profile, so
 the native adapter compiles only the Godot classes it actually uses.
+
+`game.yaml` is the source of truth for the Material Lab. Both the CLI and the
+Godot GDExtension parse it through the same C++ loader and return structured
+validation issues for malformed or unsupported input.
 
 ## Repository layout
 

@@ -1,5 +1,6 @@
 add_library(hexloom_core STATIC
     src/material_request.cpp
+    src/material_spec_loader.cpp
 )
 
 add_library(Hexloom::Core ALIAS hexloom_core)
@@ -10,6 +11,7 @@ target_include_directories(hexloom_core
 )
 
 target_compile_features(hexloom_core PUBLIC cxx_std_20)
+target_link_libraries(hexloom_core PUBLIC yaml-cpp::yaml-cpp)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(hexloom_core PRIVATE -Wall -Wextra -Wpedantic)

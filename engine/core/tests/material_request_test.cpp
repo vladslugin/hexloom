@@ -1,9 +1,16 @@
 #include "hexloom/core/material_request.hpp"
 
-#include <cassert>
 #include <iostream>
 
-int main() {
+int material_request_tests() {
+    int failures = 0;
+    const auto check = [&failures](bool condition, const char* message) {
+        if (!condition) {
+            std::cerr << "FAIL: " << message << '\n';
+            ++failures;
+        }
+    };
+
     const hexloom::MaterialRequest valid_request{
         .id = "ancient_stone_floor",
         .category = "stone",
@@ -19,7 +26,10 @@ int main() {
         },
     };
 
-    assert(hexloom::validate(valid_request).empty());
+    check(
+        hexloom::validate(valid_request).empty(),
+        "valid material request should pass"
+    );
 
     auto invalid_request = valid_request;
     invalid_request.id.clear();
@@ -27,8 +37,7 @@ int main() {
     invalid_request.physical_size_meters = 0.0F;
 
     const auto issues = hexloom::validate(invalid_request);
-    assert(issues.size() == 4);
+    check(issues.size() == 4, "invalid request should report four issues");
 
-    std::cout << "Hexloom core tests passed.\n";
-    return 0;
+    return failures;
 }

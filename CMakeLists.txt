@@ -12,9 +12,23 @@ include(FetchContent)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(HEXLOOM_BUILD_TESTS "Build Hexloom tests" ON)
 option(HEXLOOM_BUILD_GODOT_ADAPTER "Build the Godot GDExtension adapter" OFF)
+
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+    yaml_cpp
+    GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+    GIT_TAG 56e3bb550c91fd7005566f19c079cb7a503223cf
+    GIT_SHALLOW FALSE
+    GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(yaml_cpp)
 
 if(HEXLOOM_BUILD_TESTS)
     enable_testing()

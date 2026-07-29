@@ -1,6 +1,7 @@
 #include "hexloom/godot/hexloom_material_bridge.hpp"
 
 #include "hexloom/core/material_request.hpp"
+#include "hexloom/core/material_spec_loader.hpp"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/array.hpp>
@@ -8,6 +9,7 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <optional>
+#include <filesystem>
 #include <string>
 #include <string_view>
 
@@ -66,14 +68,10 @@ namespace {
     return request;
 }
 
-}  // namespace
-
-godot::Dictionary HexloomMaterialBridge::validate_material(
-    const godot::Dictionary& input
-) const {
-    const auto request = parse_request(input);
-    const auto issues = hexloom::validate(request);
-
+[[nodiscard]] godot::Dictionary serialize_result(
+    const MaterialRequest* request,
+    const std::vector<ValidationIssue>& issues
+) {
     godot::Array serialized_issues;
     for (const auto& issue : issues) {
         godot::Dictionary serialized_issue;
@@ -83,10 +81,24 @@ godot::Dictionary HexloomMaterialBridge::validate_material(
     }
 
     godot::Dictionary result;
-    result["valid"] = issues.empty();
-    result["material_id"] = godot::String(request.id.c_str());
-    result["style_id"] = godot::String(request.style_id.c_str());
+    result["valid"] = request != nullptr && issues.empty();
+    result["material_id"] =
+        request == nullptr ? godot::String{} : godot::String(request->id.c_str());
+    result["style_id"] = request == nullptr
+        ? godot::String{}
+        : godot::String(request->style_id.c_str());
     result["issues"] = serialized_issues;
+    return result;
+}
+
+}  // namespace
+
+godot::Dictionary HexloomMaterialBridge::validate_material(
+    const godot::Dictionary& input
+) const {
+    const auto request = parse_request(input);
+    const auto issues = hexloom::validate(request);
+    auto result = serialize_result(&request, issues);
 
     godot::UtilityFunctions::print(
         "Hexloom C++ validation: material=",
@@ -98,10 +110,34 @@ godot::Dictionary HexloomMaterialBridge::validate_material(
     return result;
 }
 
+godot::Dictionary HexloomMaterialBridge::validate_material_file(
+    const godot::String& path
+) const {
+    const std::filesystem::path specification_path =
+        path.utf8().get_data();
+    const auto loaded = load_material_request(specification_path);
+    const MaterialRequest* request =
+        loaded.request.has_value() ? &*loaded.request : nullptr;
+    auto result = serialize_result(request, loaded.issues);
+
+    godot::UtilityFunctions::print(
+        "Hexloom C++ specification: path=",
+        path,
+        " valid=",
+        result["valid"]
+    );
+
+    return result;
+}
+
 void HexloomMaterialBridge::_bind_methods() {
     godot::ClassDB::bind_method(
         godot::D_METHOD("validate_material", "request"),
         &HexloomMaterialBridge::validate_material
+    );
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("validate_material_file", "path"),
+        &HexloomMaterialBridge::validate_material_file
     );
 }
 

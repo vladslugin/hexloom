@@ -1,0 +1,13 @@
+art_style:
+  id: test_style
+
+material:
+  id: broken_material
+  category: stone
+  resolution: 3000
+  seamless: true
+  physical_size_meters: 1
+  mobile_optimized: true
+  maps:
+    - normal
+    - impossible_map

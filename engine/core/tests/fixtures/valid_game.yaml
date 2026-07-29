@@ -1,0 +1,15 @@
+art_style:
+  id: soft_neon_scifi
+
+material:
+  id: ancient_stone_floor
+  category: stone
+  resolution: 2048
+  seamless: true
+  physical_size_meters: 2
+  mobile_optimized: true
+  maps:
+    - albedo
+    - normal
+    - roughness
+    - ambient_occlusion

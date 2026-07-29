@@ -18,21 +18,10 @@ func _ready() -> void:
 
 func _validate_with_cpp() -> Dictionary:
 	var bridge := HexloomMaterialBridge.new()
-	return bridge.validate_material({
-		"id": MATERIAL_ID,
-		"category": "stone",
-		"style_id": STYLE_ID,
-		"resolution": 2048,
-		"physical_size_meters": 2.0,
-		"seamless": true,
-		"mobile_optimized": true,
-		"maps": [
-			"albedo",
-			"normal",
-			"roughness",
-			"ambient_occlusion",
-		],
-	})
+	var specification_path := ProjectSettings.globalize_path(
+		"res://../../games/material-lab/game.yaml"
+	)
+	return bridge.validate_material_file(specification_path)
 
 
 func _create_environment() -> void:

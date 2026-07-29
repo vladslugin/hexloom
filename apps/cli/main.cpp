@@ -1,36 +1,41 @@
-#include "hexloom/core/material_request.hpp"
+#include "hexloom/core/material_spec_loader.hpp"
 
+#include <filesystem>
 #include <iostream>
+#include <string_view>
 
-int main() {
-    const hexloom::MaterialRequest request{
-        .id = "ancient_stone_floor",
-        .category = "stone",
-        .style_id = "soft_neon_scifi",
-        .resolution = 2048,
-        .physical_size_meters = 2.0F,
-        .seamless = true,
-        .mobile_optimized = true,
-        .maps = {
-            hexloom::TextureMap::albedo,
-            hexloom::TextureMap::normal,
-            hexloom::TextureMap::roughness,
-            hexloom::TextureMap::ambient_occlusion,
-        },
-    };
+namespace {
 
-    const auto issues = hexloom::validate(request);
+void print_usage() {
+    std::cerr << "Usage: hexloom validate <game.yaml>\n";
+}
 
-    std::cout << "Hexloom material request: " << request.id << '\n';
-    if (!issues.empty()) {
-        for (const auto& issue : issues) {
+}  // namespace
+
+int main(int argc, char** argv) {
+    if (argc != 3 || std::string_view(argv[1]) != "validate") {
+        print_usage();
+        return 2;
+    }
+
+    const std::filesystem::path specification_path = argv[2];
+    const auto result = hexloom::load_material_request(specification_path);
+
+    if (!result.ok()) {
+        std::cerr << "Hexloom specification is invalid: "
+                  << specification_path << '\n';
+        for (const auto& issue : result.issues) {
             std::cerr << "error [" << issue.field << "]: "
                       << issue.message << '\n';
         }
         return 1;
     }
 
-    std::cout << "status: ready\nmaps:";
+    const auto& request = *result.request;
+    std::cout << "Hexloom material request: " << request.id << '\n'
+              << "style: " << request.style_id << '\n'
+              << "status: ready\n"
+              << "maps:";
     for (const auto map : request.maps) {
         std::cout << ' ' << hexloom::to_string(map);
     }
