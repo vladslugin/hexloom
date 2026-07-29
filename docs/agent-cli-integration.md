@@ -57,9 +57,12 @@ hexloom agent-plan codex read "Review the material specification"
 hexloom agent-plan claude write "Implement the selected mechanic"
 ```
 
-The next milestone is a process supervisor that discovers executables, streams
-stdout and stderr without blocking the UI, normalizes provider events, supports
-cancellation, and enforces workspace boundaries.
+The first process-supervisor layer now launches argv directly on macOS/Linux,
+captures and streams stdout and stderr separately, preserves exit status,
+supports cancellation, terminates the complete child process group, and
+enforces timeouts. Windows has the same public interface; its native backend is
+the next platform task. Event normalization and asynchronous UI ownership come
+after that backend.
 
 ## Primary references
 

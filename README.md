@@ -8,9 +8,10 @@ tests, and build games for desktop and mobile platforms.
 
 Coding agents are designed as replaceable local providers. A user-installed
 Codex or Claude Code CLI can reuse its existing account login, so Hexloom does
-not require an API key or handle provider credentials. The first C++ adapter
-builds safe structured launch plans; streaming process execution is the next
-milestone.
+not require an API key or handle provider credentials. The C++ agent layer
+builds safe structured launch plans and has a macOS/Linux process supervisor
+with separated streaming output, cancellation, timeouts, and child-process
+cleanup.
 
 Every change is checked on Linux against the C++ test suite, the CLI, and a
 real headless Godot 4.7.1 process loading the native GDExtension.

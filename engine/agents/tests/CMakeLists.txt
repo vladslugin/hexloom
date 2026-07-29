@@ -1,5 +1,6 @@
 add_executable(hexloom_agent_tests
     agent_cli_test.cpp
+    process_runner_test.cpp
 )
 
 target_link_libraries(

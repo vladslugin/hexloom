@@ -2,6 +2,12 @@ add_library(hexloom_agents STATIC
     src/agent_cli.cpp
 )
 
+if(UNIX)
+    target_sources(hexloom_agents PRIVATE src/process_runner_posix.cpp)
+elseif(WIN32)
+    target_sources(hexloom_agents PRIVATE src/process_runner_windows.cpp)
+endif()
+
 add_library(Hexloom::Agents ALIAS hexloom_agents)
 
 target_include_directories(hexloom_agents

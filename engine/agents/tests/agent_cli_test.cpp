@@ -4,7 +4,17 @@
 #include <stdexcept>
 #include <string>
 
-int main() {
+int run_process_child(std::string_view mode);
+int run_process_runner_tests(const std::string& executable);
+
+int main(int argc, char** argv) {
+    if (argc == 2) {
+        const int child_result = run_process_child(argv[1]);
+        if (child_result >= 0) {
+            return child_result;
+        }
+    }
+
     using hexloom::agents::AgentAccess;
     using hexloom::agents::AgentProvider;
 
@@ -66,6 +76,7 @@ int main() {
     }
     check(empty_prompt_rejected, "empty prompts should be rejected");
 
+    failures += run_process_runner_tests(argv[0]);
     if (failures == 0) {
         std::cout << "Hexloom agent CLI tests passed.\n";
     }
