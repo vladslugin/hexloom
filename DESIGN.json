@@ -4,65 +4,71 @@
   "title": "Design System: Hexloom Studio",
   "extensions": {
     "colorMeta": {
-      "void-graphite": {
+      "evening-ink": {
         "role": "neutral",
-        "displayName": "Void Graphite",
-        "canonical": "#0B0F0D",
-        "tonalRamp": ["#08100C", "#0B1711", "#14261C", "#25392E", "#405649", "#65786C", "#A2B0A8", "#E5EBE7"]
+        "displayName": "Evening Ink",
+        "canonical": "#191814",
+        "tonalRamp": ["#17150F", "#211E17", "#302C22", "#463F31", "#635A48", "#857B69", "#B7AD9F", "#EEE8DE"]
       },
-      "loom-surface": {
+      "workshop-surface": {
         "role": "neutral",
-        "displayName": "Loom Surface",
-        "canonical": "#111713",
-        "tonalRamp": ["#09100C", "#111713", "#1A251E", "#2A3A30", "#46594C", "#687B6F", "#A5B3AA", "#E7ECE9"]
+        "displayName": "Workshop Surface",
+        "canonical": "#211F1A",
+        "tonalRamp": ["#17150F", "#211F1A", "#312E26", "#474239", "#645E52", "#867E72", "#B8B0A5", "#EFEAE2"]
       },
       "raised-workbench": {
         "role": "neutral",
         "displayName": "Raised Workbench",
-        "canonical": "#17201B",
-        "tonalRamp": ["#0B110E", "#17201B", "#213129", "#34493D", "#506658", "#738579", "#ABB8B0", "#E9EDEB"]
+        "canonical": "#2A2821",
+        "tonalRamp": ["#181610", "#24211B", "#35322A", "#4B473D", "#686257", "#898277", "#BAB3A9", "#F0EBE4"]
       },
-      "thread-border": {
+      "pencil-border": {
         "role": "neutral",
-        "displayName": "Thread Border",
-        "canonical": "#29362F",
-        "tonalRamp": ["#101612", "#1B2620", "#29362F", "#3B4E43", "#566B5E", "#798B80", "#B0BCB5", "#EBEFED"]
+        "displayName": "Pencil Border",
+        "canonical": "#3B382F",
+        "tonalRamp": ["#1A1812", "#29261F", "#3B382F", "#514D42", "#6D675B", "#8D877B", "#BCB5AA", "#F0ECE5"]
       },
-      "woven-text": {
+      "parchment-text": {
         "role": "neutral",
-        "displayName": "Woven Text",
-        "canonical": "#D9E4DE",
-        "tonalRamp": ["#15201A", "#26372E", "#42584C", "#62766B", "#84978C", "#A7B7AE", "#C7D3CC", "#EEF3F0"]
+        "displayName": "Parchment Text",
+        "canonical": "#F0E9DC",
+        "tonalRamp": ["#211E18", "#39342B", "#574F42", "#756C5D", "#978D7E", "#B8AD9F", "#D7CEC2", "#F7F2EA"]
       },
       "quiet-text": {
         "role": "neutral",
         "displayName": "Quiet Text",
-        "canonical": "#83968C",
-        "tonalRamp": ["#101A15", "#213129", "#3A4D43", "#576B60", "#75897E", "#96A79E", "#BCC8C1", "#EBF0ED"]
+        "canonical": "#AAA193",
+        "tonalRamp": ["#1D1A15", "#312D25", "#49443A", "#645D51", "#82796C", "#A2998B", "#C8C0B6", "#F1EDE6"]
       },
-      "live-phosphor": {
+      "clay-apricot": {
         "role": "primary",
-        "displayName": "Live Phosphor",
-        "canonical": "#67E6A3",
-        "tonalRamp": ["#052218", "#083B28", "#105A3D", "#1D7C55", "#31A873", "#67E6A3", "#A5F3CA", "#E3FBEF"]
+        "displayName": "Clay Apricot",
+        "canonical": "#E7A978",
+        "tonalRamp": ["#2A170B", "#492713", "#6C3A1E", "#92532E", "#BC744B", "#E7A978", "#F2CDAE", "#FAEFE4"]
       },
-      "signal-cyan": {
+      "mist-blue": {
         "role": "secondary",
-        "displayName": "Signal Cyan",
-        "canonical": "#73B8D4",
-        "tonalRamp": ["#0B2028", "#123746", "#1C5268", "#2B718D", "#4595B5", "#73B8D4", "#ACD7E8", "#E6F4F8"]
+        "displayName": "Mist Blue",
+        "canonical": "#86AEB4",
+        "tonalRamp": ["#132023", "#22373A", "#365156", "#506F74", "#6F9095", "#98B8BC", "#C2D4D6", "#EDF3F3"]
       },
-      "attention-amber": {
+      "honey-amber": {
         "role": "tertiary",
-        "displayName": "Attention Amber",
-        "canonical": "#E5B566",
-        "tonalRamp": ["#271A08", "#432D0C", "#654514", "#89601F", "#B58335", "#E5B566", "#F3D79F", "#FBF1DD"]
+        "displayName": "Honey Amber",
+        "canonical": "#D9BE79",
+        "tonalRamp": ["#251C09", "#403112", "#604A1D", "#81672E", "#A98A49", "#D9BE79", "#EBD8AA", "#F8F1DF"]
       },
       "fault-coral": {
         "role": "tertiary",
         "displayName": "Fault Coral",
-        "canonical": "#E27D76",
-        "tonalRamp": ["#2B1010", "#481B1A", "#6A2926", "#913B37", "#BB554F", "#E27D76", "#F0B0AC", "#F9E5E3"]
+        "canonical": "#D9897E",
+        "tonalRamp": ["#291211", "#461F1C", "#672F2B", "#8B443E", "#B36057", "#D9897E", "#EAB8B1", "#F7E7E4"]
+      },
+      "calm-sage": {
+        "role": "tertiary",
+        "displayName": "Calm Sage",
+        "canonical": "#9EB29A",
+        "tonalRamp": ["#182017", "#2A3628", "#40503D", "#5D6D58", "#7C8D77", "#9EB29A", "#C5D1C2", "#EEF2ED"]
       }
     },
     "typographyMeta": {
@@ -104,8 +110,8 @@
       "kind": "button",
       "refersTo": "button-primary",
       "description": "The single decisive action in a workspace region.",
-      "html": "<button class=\"ds-button-primary\">RUN WEAVE</button>",
-      "css": ".ds-button-primary { background:#67E6A3; color:#0B0F0D; border:1px solid #67E6A3; border-radius:6px; padding:10px 14px; font:600 11px/1.3 ui-monospace, monospace; letter-spacing:.08em; transition:filter 180ms, transform 180ms, box-shadow 180ms; } .ds-button-primary:hover { filter:brightness(1.08); transform:translateY(-1px); } .ds-button-primary:focus-visible { outline:none; box-shadow:0 0 0 2px #0B0F0D, 0 0 0 4px #67E6A3; } .ds-button-primary:active { transform:translateY(0); }"
+      "html": "<button class=\"ds-button-primary\">CREATE PLAN</button>",
+      "css": ".ds-button-primary { background:#E7A978; color:#191814; border:1px solid #E7A978; border-radius:6px; padding:10px 14px; font:600 11px/1.3 system-ui, sans-serif; transition:filter 180ms, transform 180ms, box-shadow 180ms; } .ds-button-primary:hover { filter:brightness(1.06); transform:translateY(-1px); } .ds-button-primary:focus-visible { outline:none; box-shadow:0 0 0 2px #191814, 0 0 0 4px #E7A978; } .ds-button-primary:active { transform:translateY(0); }"
     },
     {
       "name": "Ghost Button",
@@ -113,50 +119,50 @@
       "refersTo": "button-ghost",
       "description": "A quiet secondary action that remains easy to locate.",
       "html": "<button class=\"ds-button-ghost\">INSPECT DIFF</button>",
-      "css": ".ds-button-ghost { background:#111713; color:#D9E4DE; border:1px solid #29362F; border-radius:6px; padding:10px 14px; font:600 11px/1.3 ui-monospace, monospace; letter-spacing:.08em; transition:background 180ms, border-color 180ms; } .ds-button-ghost:hover { background:#17201B; border-color:#83968C; } .ds-button-ghost:focus-visible { outline:2px solid #67E6A3; outline-offset:2px; } .ds-button-ghost:active { background:#0B0F0D; }"
+      "css": ".ds-button-ghost { background:#211F1A; color:#F0E9DC; border:1px solid #3B382F; border-radius:6px; padding:10px 14px; font:600 11px/1.3 system-ui, sans-serif; transition:background 180ms, border-color 180ms; } .ds-button-ghost:hover { background:#2A2821; border-color:#AAA193; } .ds-button-ghost:focus-visible { outline:2px solid #E7A978; outline-offset:2px; } .ds-button-ghost:active { background:#191814; }"
     },
     {
       "name": "Command Field",
       "kind": "input",
       "description": "Accepts natural-language direction without pretending to be chat.",
       "html": "<input class=\"ds-command-field\" value=\"Give the stone shrine a colder silhouette\" aria-label=\"Command\" />",
-      "css": ".ds-command-field { width:360px; box-sizing:border-box; background:#0B0F0D; color:#D9E4DE; border:1px solid #29362F; border-radius:6px; padding:11px 12px; font:400 14px/1.5 system-ui, sans-serif; transition:border-color 180ms, box-shadow 180ms; } .ds-command-field:hover { border-color:#83968C; } .ds-command-field:focus-visible { outline:none; border-color:#67E6A3; box-shadow:0 0 0 2px rgba(103,230,163,.18); }"
+      "css": ".ds-command-field { width:360px; box-sizing:border-box; background:#191814; color:#F0E9DC; border:1px solid #3B382F; border-radius:6px; padding:11px 12px; font:400 14px/1.5 system-ui, sans-serif; transition:border-color 180ms, box-shadow 180ms; } .ds-command-field:hover { border-color:#AAA193; } .ds-command-field:focus-visible { outline:none; border-color:#E7A978; box-shadow:0 0 0 2px rgba(231,169,120,.18); }"
     },
     {
       "name": "Live Status",
       "kind": "chip",
       "refersTo": "status-live",
       "description": "Signals genuine active execution with text and a semantic mark.",
-      "html": "<span class=\"ds-status-live\"><span aria-hidden=\"true\">●</span> WEAVING</span>",
-      "css": ".ds-status-live { display:inline-flex; align-items:center; gap:6px; background:#17201B; color:#67E6A3; border:1px solid #29362F; border-radius:999px; padding:5px 9px; font:600 11px/1.3 ui-monospace, monospace; letter-spacing:.08em; }"
+      "html": "<span class=\"ds-status-live\"><span aria-hidden=\"true\">●</span> CREATING</span>",
+      "css": ".ds-status-live { display:inline-flex; align-items:center; gap:6px; background:#2A2821; color:#E7A978; border:1px solid #3B382F; border-radius:999px; padding:5px 9px; font:600 11px/1.3 system-ui, sans-serif; }"
     },
     {
       "name": "Workbench Panel",
       "kind": "card",
       "refersTo": "panel",
       "description": "A persistent structural region, never a floating decorative card.",
-      "html": "<section class=\"ds-workbench\"><small>WORLD MEMORY</small><strong>Ancient coastal observatory</strong><p>12 durable constraints shared with every agent.</p></section>",
-      "css": ".ds-workbench { width:300px; background:#111713; color:#D9E4DE; border:1px solid #29362F; border-radius:10px; padding:18px; font:400 14px/1.5 system-ui, sans-serif; } .ds-workbench small { display:block; margin-bottom:12px; color:#83968C; font:600 11px/1.3 ui-monospace, monospace; letter-spacing:.08em; } .ds-workbench strong { display:block; margin-bottom:6px; font-size:16px; } .ds-workbench p { margin:0; color:#83968C; }"
+      "html": "<section class=\"ds-workbench\"><small>Project memory</small><strong>Ancient coastal observatory</strong><p>12 durable constraints shared with every agent.</p></section>",
+      "css": ".ds-workbench { width:300px; background:#211F1A; color:#F0E9DC; border:1px solid #3B382F; border-radius:10px; padding:18px; font:400 14px/1.5 system-ui, sans-serif; } .ds-workbench small { display:block; margin-bottom:12px; color:#AAA193; font:600 11px/1.3 system-ui, sans-serif; } .ds-workbench strong { display:block; margin-bottom:6px; font-size:16px; } .ds-workbench p { margin:0; color:#AAA193; }"
     }
   ],
   "narrative": {
-    "northStar": "The Living Workbench",
-    "overview": "Hexloom is a low-glare instrument for a solo creator working on a laptop at night, moving between agent streams while a collaborator watches the system work. It feels like a beautifully maintained electronics bench: dense with meaningful signals, calm at rest, and visibly alive only when real work is happening.",
+    "northStar": "The Evening Maker's Desk",
+    "overview": "Hexloom is a low-glare creative workspace for a solo creator working on a laptop in a warm room at night, shaping a world while a friend watches it take form. It feels like a carefully kept maker's desk: calm, tactile, personal, and visibly alive only when real work is happening.",
     "keyCharacteristics": [
       "Dense but immediately scannable.",
-      "Dark and low-glare, never black and fluorescent.",
+      "Warm and low-glare, never black, fluorescent, or clinical.",
       "Asymmetric workspace composition with stable navigation.",
-      "Monospace reserved for machines, state, paths, and commands.",
+      "Monospace reserved for paths, commands, and compact telemetry.",
       "Visual energy produced by live, inspectable work."
     ],
     "rules": [
-      {"name": "The Live Wire Rule", "body": "Live Phosphor occupies no more than ten percent of a screen; its rarity makes active work unmistakable.", "section": "colors"},
+      {"name": "The Warm Hand Rule", "body": "Clay Apricot occupies no more than ten percent of a screen; it marks creation and invitation, never generic system activity.", "section": "colors"},
       {"name": "The Signal Pair Rule", "body": "Status color is always paired with an icon, label, or explicit state word.", "section": "colors"},
       {"name": "The Two Voices Rule", "body": "Human guidance uses sans; machine identity, state, paths, commands, and telemetry use mono.", "section": "typography"},
       {"name": "The Bench Rule", "body": "Persistent surfaces never float. If every panel casts a shadow, the hierarchy is wrong.", "section": "elevation"}
     ],
     "dos": [
-      "Do reserve Live Phosphor for active work, focus, success, and primary actions.",
+      "Do reserve Clay Apricot for creative actions, focus, and the primary action.",
       "Do connect every agent event to its originating intent and resulting artifact.",
       "Do use asymmetric regions to establish priority while keeping navigation positions stable.",
       "Do provide reduced-motion behavior and non-color state labels.",
@@ -164,12 +170,13 @@
     ],
     "donts": [
       "Don't create generic neon cyberpunk dashboards or use fluorescent color as decoration.",
+      "Don't use poisonous AI-green accents as the default sign of intelligence or activity.",
       "Don't build fake walls of terminal noise or Matrix rain.",
       "Don't imitate crypto-trading interfaces.",
       "Don't use glassmorphism.",
       "Don't arrange the workspace as identical SaaS card grids.",
       "Don't add decorative AI animations that imply activity without explaining it.",
-      "Don't make Hexloom resemble a movie prop, a reskinned chat application, or an admin dashboard with green text.",
+      "Don't make Hexloom resemble a movie prop, a reskinned chat application, an observability dashboard, or an admin panel with green text.",
       "Don't use colored side stripes, gradient text, or nested cards as visual shortcuts."
     ]
   }

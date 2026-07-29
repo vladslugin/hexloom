@@ -25,19 +25,20 @@ shipping the same project across desktop and mobile.
 
 ## Brand Personality
 
-Technical, audacious, and welcoming. Hexloom should feel like a serious
-instrument built by people who love game tools: precise enough to trust,
-dramatic enough to enjoy watching, and friendly enough to invite exploration.
-The emotional goal is controlled momentum. The creator should feel powerful,
-informed, and eager to make the next move.
+Technical, imaginative, and welcoming. Hexloom should feel like a carefully
+kept creative workshop: precise enough to trust, warm enough to spend hours
+inside, and friendly enough to invite exploration. The emotional goal is calm
+creative momentum. The creator should feel capable, informed, and eager to
+shape the next part of the world.
 
 ## Anti-references
 
-Avoid generic neon cyberpunk dashboards, fake walls of terminal noise, Matrix
-rain, crypto-trading interfaces, glassmorphism, identical SaaS card grids, and
-decorative AI animations that imply activity without explaining it. Hexloom
-must not resemble a movie prop, a reskinned chat application, or an admin
-dashboard with green text.
+Avoid generic neon cyberpunk dashboards, poisonous AI-green accents, fake
+walls of terminal noise, Matrix rain, crypto-trading interfaces,
+glassmorphism, identical SaaS card grids, and decorative AI animations that
+imply activity without explaining it. Hexloom must not resemble a movie prop,
+a reskinned chat application, an observability dashboard, or an admin panel
+with green text.
 
 ## Design Principles
 

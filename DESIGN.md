@@ -1,17 +1,18 @@
 ---
 name: Hexloom Studio
-description: A calm operator's workshop where agents weave playable worlds.
+description: A warm creative workshop where agents help shape playable worlds.
 colors:
-  void-graphite: "#0B0F0D"
-  loom-surface: "#111713"
-  raised-workbench: "#17201B"
-  thread-border: "#29362F"
-  woven-text: "#D9E4DE"
-  quiet-text: "#83968C"
-  live-phosphor: "#67E6A3"
-  signal-cyan: "#73B8D4"
-  attention-amber: "#E5B566"
-  fault-coral: "#E27D76"
+  evening-ink: "#191814"
+  workshop-surface: "#211F1A"
+  raised-workbench: "#2A2821"
+  pencil-border: "#3B382F"
+  parchment-text: "#F0E9DC"
+  quiet-text: "#AAA193"
+  clay-apricot: "#E7A978"
+  mist-blue: "#86AEB4"
+  honey-amber: "#D9BE79"
+  fault-coral: "#D9897E"
+  calm-sage: "#9EB29A"
 typography:
   title:
     fontFamily: "Inter, SF Pro Text, Segoe UI, system-ui, sans-serif"
@@ -43,25 +44,25 @@ spacing:
   xl: "24px"
 components:
   button-primary:
-    backgroundColor: "{colors.live-phosphor}"
-    textColor: "{colors.void-graphite}"
+    backgroundColor: "{colors.clay-apricot}"
+    textColor: "{colors.evening-ink}"
     typography: "{typography.label}"
     rounded: "{rounded.control}"
     padding: "10px 14px"
   button-ghost:
-    backgroundColor: "{colors.loom-surface}"
-    textColor: "{colors.woven-text}"
+    backgroundColor: "{colors.workshop-surface}"
+    textColor: "{colors.parchment-text}"
     typography: "{typography.label}"
     rounded: "{rounded.control}"
     padding: "10px 14px"
   panel:
-    backgroundColor: "{colors.loom-surface}"
-    textColor: "{colors.woven-text}"
+    backgroundColor: "{colors.workshop-surface}"
+    textColor: "{colors.parchment-text}"
     rounded: "{rounded.panel}"
     padding: "18px"
   status-live:
     backgroundColor: "{colors.raised-workbench}"
-    textColor: "{colors.live-phosphor}"
+    textColor: "{colors.clay-apricot}"
     typography: "{typography.label}"
     rounded: "{rounded.pill}"
     padding: "5px 9px"
@@ -71,65 +72,65 @@ components:
 
 ## 1. Overview
 
-**Creative North Star: "The Living Workbench"**
+**Creative North Star: "The Evening Maker's Desk"**
 
-Hexloom is a low-glare instrument for a solo creator working on a laptop at
-night, moving between agent streams while a collaborator watches the system
-work. It should feel like a beautifully maintained electronics bench: dense
-with meaningful signals, calm at rest, and visibly alive only when real work
-is happening.
+Hexloom is a low-glare creative workspace for a solo creator working on a
+laptop in a warm room at night, shaping a world while a friend watches it take
+form. It should feel like a carefully kept maker's desk: calm, tactile,
+personal, and visibly alive only when real work is happening.
 
 The interface combines familiar product structure with the character of a
-technical atelier. Fine separators, compact labels, honest event streams, and
-asymmetric workspace regions create the hacker appeal. It explicitly rejects
-generic neon cyberpunk dashboards, fake terminal walls, Matrix rain,
-crypto-trading interfaces, glassmorphism, identical SaaS card grids, and
-decorative AI animations.
+digital atelier. Warm tinted neutrals, soft geometry, plain-language labels,
+honest event streams, and asymmetric workspace regions create confidence
+without aggression. It explicitly rejects generic neon cyberpunk dashboards,
+poisonous AI-green accents, fake terminal walls, Matrix rain, crypto-trading
+interfaces, glassmorphism, identical SaaS card grids, and decorative AI
+animations.
 
 **Key Characteristics:**
 
 - Dense but immediately scannable.
-- Dark and low-glare, never black and fluorescent.
+- Warm and low-glare, never black, fluorescent, or clinical.
 - Asymmetric workspace composition with stable navigation.
-- Monospace reserved for machines, state, paths, and commands.
+- Monospace reserved for paths, commands, and compact telemetry.
 - Visual energy produced by live, inspectable work.
 
 ## 2. Colors
 
-The palette is a warm graphite workshop with a restrained set of instrument
-signals.
+The palette is a warm evening workshop with restrained clay, mist, honey, and
+sage signals.
 
 ### Primary
 
-- **Live Phosphor:** Reserved for the current action, successful execution,
-  keyboard focus, and the one primary control in a region.
+- **Clay Apricot:** Reserved for the current creative action, keyboard focus,
+  and the one primary control in a region.
 
 ### Secondary
 
-- **Signal Cyan:** Identifies information, linked artifacts, and agent output
+- **Mist Blue:** Identifies information, linked artifacts, and agent output
   that is available for inspection.
 
 ### Tertiary
 
-- **Attention Amber:** Marks waiting, review, warnings, and decisions that
+- **Honey Amber:** Marks waiting, review, warnings, and decisions that
   require the operator.
 - **Fault Coral:** Marks failed work and destructive actions without flooding
   the whole surface.
 
 ### Neutral
 
-- **Void Graphite:** The application canvas and deepest terminal layer.
-- **Loom Surface:** Persistent rails, panels, and quiet controls.
+- **Evening Ink:** The application canvas and deepest working layer.
+- **Workshop Surface:** Persistent rails, panels, and quiet controls.
 - **Raised Workbench:** Selected rows, active tool areas, and nested working
   surfaces.
-- **Thread Border:** Fine structural separators and inactive outlines.
-- **Woven Text:** Primary readable content.
+- **Pencil Border:** Fine structural separators and inactive outlines.
+- **Parchment Text:** Primary readable content.
 - **Quiet Text:** Metadata and secondary explanations.
 
 ### Named Rules
 
-**The Live Wire Rule.** Live Phosphor occupies no more than ten percent of a
-screen; its rarity makes active work unmistakable.
+**The Warm Hand Rule.** Clay Apricot occupies no more than ten percent of a
+screen; it marks creation and invitation, never generic system activity.
 
 **The Signal Pair Rule.** Status color is always paired with an icon, label, or
 explicit state word.
@@ -178,11 +179,11 @@ shadow, the hierarchy is wrong.
 ### Buttons
 
 - **Shape:** Compact, gently machined corners (6px radius).
-- **Primary:** Live Phosphor fill, Void Graphite text, and compact 10px by 14px
+- **Primary:** Clay Apricot fill, Evening Ink text, and compact 10px by 14px
   padding. Only one primary action appears in a region.
 - **Hover / Focus:** Borders brighten over 180ms; focus adds a visible
   two-pixel outer signal.
-- **Secondary / Ghost:** Tonal surface and a one-pixel Thread Border outline.
+- **Secondary / Ghost:** Tonal surface and a one-pixel Pencil Border outline.
 
 ### Chips
 
@@ -194,16 +195,16 @@ shadow, the hierarchy is wrong.
 ### Cards / Containers
 
 - **Corner Style:** Workbench panels use a restrained 10px radius.
-- **Background:** Loom Surface for persistent regions and Raised Workbench for
+- **Background:** Workshop Surface for persistent regions and Raised Workbench for
   selected or nested content.
 - **Shadow Strategy:** Persistent containers use no shadow.
-- **Border:** One-pixel Thread Border separators.
+- **Border:** One-pixel Pencil Border separators.
 - **Internal Padding:** 12px for dense lists and 18px for primary panels.
 
 ### Inputs / Fields
 
-- **Style:** Void Graphite inset field, one-pixel border, and 6px corners.
-- **Focus:** Live Phosphor border plus a visible external focus cue.
+- **Style:** Evening Ink inset field, one-pixel border, and 6px corners.
+- **Focus:** Clay Apricot border plus a visible external focus cue.
 - **Error / Disabled:** Fault Coral plus an error label; disabled controls lose
   contrast but retain readable labels.
 
@@ -224,8 +225,8 @@ quiet history instead of continuing to glow.
 
 ### Do:
 
-- **Do** reserve Live Phosphor for active work, focus, success, and primary
-  actions.
+- **Do** reserve Clay Apricot for creative actions, focus, and the primary
+  action.
 - **Do** connect every agent event to its originating intent and resulting
   artifact.
 - **Do** use asymmetric regions to establish priority while keeping navigation
@@ -238,6 +239,8 @@ quiet history instead of continuing to glow.
 
 - **Don't** create generic neon cyberpunk dashboards or use fluorescent color
   as decoration.
+- **Don't** use poisonous AI-green accents as the default sign of intelligence
+  or activity.
 - **Don't** build fake walls of terminal noise or Matrix rain.
 - **Don't** imitate crypto-trading interfaces.
 - **Don't** use glassmorphism.
@@ -245,6 +248,6 @@ quiet history instead of continuing to glow.
 - **Don't** add decorative AI animations that imply activity without
   explaining it.
 - **Don't** make Hexloom resemble a movie prop, a reskinned chat application,
-  or an admin dashboard with green text.
+  an observability dashboard, or an admin panel with green text.
 - **Don't** use colored side stripes, gradient text, or nested cards as visual
   shortcuts.

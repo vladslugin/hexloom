@@ -1,17 +1,18 @@
 extends Control
 
-const BG := Color("#0B0F0D")
-const SURFACE := Color("#111713")
-const RAISED := Color("#17201B")
-const BORDER := Color("#29362F")
-const BORDER_SOFT := Color("#202B25")
-const TEXT := Color("#D9E4DE")
-const MUTED := Color("#83968C")
-const DIM := Color("#53645B")
-const LIVE := Color("#67E6A3")
-const CYAN := Color("#73B8D4")
-const AMBER := Color("#E5B566")
-const CORAL := Color("#E27D76")
+const BG := Color("#191814")
+const SURFACE := Color("#211F1A")
+const RAISED := Color("#2A2821")
+const BORDER := Color("#3B382F")
+const BORDER_SOFT := Color("#302E27")
+const TEXT := Color("#F0E9DC")
+const MUTED := Color("#AAA193")
+const DIM := Color("#7E776C")
+const LIVE := Color("#E7A978")
+const SAGE := Color("#9EB29A")
+const CYAN := Color("#86AEB4")
+const AMBER := Color("#D9BE79")
+const CORAL := Color("#D9897E")
 
 const TOP_H := 58.0
 const RAIL_W := 224.0
@@ -54,15 +55,24 @@ func _process(delta: float) -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		var mouse: Vector2 = event.position
-		if mouse.x < RAIL_W and mouse.y > 244.0 and mouse.y < 428.0:
-			selected_agent = clampi(int((mouse.y - 252.0) / 44.0), 0, 3)
+		var agent_index := _agent_index_at(mouse)
+		if agent_index >= 0:
+			selected_agent = agent_index
 			queue_redraw()
+
+
+func _agent_index_at(position: Vector2) -> int:
+	if position.x < 0.0 or position.x >= RAIL_W:
+		return -1
+	if position.y < 282.0 or position.y >= 458.0:
+		return -1
+	return clampi(int((position.y - 282.0) / 44.0), 0, 3)
 
 
 func _create_controls() -> void:
 	command_field = LineEdit.new()
-	command_field.placeholder_text = "Describe the next change to the world..."
-	command_field.text = "Make the shrine silhouette colder and more ceremonial"
+	command_field.placeholder_text = "What would you like to make next?"
+	command_field.text = "Give the shrine a colder, more ceremonial silhouette"
 	command_field.add_theme_font_size_override("font_size", 14)
 	command_field.add_theme_color_override("font_color", TEXT)
 	command_field.add_theme_color_override("font_placeholder_color", DIM)
@@ -79,7 +89,7 @@ func _create_controls() -> void:
 	add_child(command_field)
 
 	run_button = Button.new()
-	run_button.text = "RUN WEAVE  ↵"
+	run_button.text = "CREATE PLAN  ↵"
 	run_button.add_theme_font_size_override("font_size", 12)
 	run_button.add_theme_color_override("font_color", BG)
 	run_button.add_theme_color_override("font_hover_color", BG)
@@ -90,17 +100,17 @@ func _create_controls() -> void:
 	)
 	run_button.add_theme_stylebox_override(
 		"hover",
-		_style(Color("#82EDB5"), Color("#82EDB5"), 7, 13, 0)
+		_style(Color("#F0B989"), Color("#F0B989"), 7, 13, 0)
 	)
 	run_button.add_theme_stylebox_override(
 		"pressed",
-		_style(Color("#4FCB8B"), Color("#4FCB8B"), 7, 13, 0)
+		_style(Color("#CD8E60"), Color("#CD8E60"), 7, 13, 0)
 	)
 	run_button.pressed.connect(func() -> void: _run_weave(command_field.text))
 	add_child(run_button)
 
 	pause_button = Button.new()
-	pause_button.text = "Ⅱ  PAUSE"
+	pause_button.text = "Ⅱ  Pause"
 	pause_button.add_theme_font_size_override("font_size", 11)
 	pause_button.add_theme_color_override("font_color", MUTED)
 	pause_button.add_theme_color_override("font_hover_color", TEXT)
@@ -152,17 +162,29 @@ func _style(
 	return box
 
 
+func _panel(
+	rect: Rect2,
+	background: Color,
+	border_color := BORDER,
+	radius := 8
+) -> void:
+	draw_style_box(
+		_style(background, border_color, radius, 0, 0),
+		rect
+	)
+
+
 func _run_weave(text: String) -> void:
 	if text.strip_edges().is_empty():
-		toast_text = "Add a direction before starting the weave."
+		toast_text = "Describe a change and Hexloom will prepare the plan."
 	else:
-		toast_text = "Direction queued for the Orchestrator."
+		toast_text = "Your direction is ready for planning."
 	toast_until = Time.get_ticks_msec() + 2600
 	queue_redraw()
 
 
 func _pause_weave() -> void:
-	toast_text = "Pause requested after the current safe checkpoint."
+	toast_text = "Hexloom will pause at the next safe checkpoint."
 	toast_until = Time.get_ticks_msec() + 2600
 	queue_redraw()
 
@@ -170,6 +192,9 @@ func _pause_weave() -> void:
 func _handle_automation_args() -> void:
 	for argument in OS.get_cmdline_user_args():
 		if argument == "--smoke-test":
+			if not _run_self_checks():
+				get_tree().quit(1)
+				return
 			get_tree().quit(0)
 			return
 		if argument.begins_with("--capture="):
@@ -183,6 +208,27 @@ func _handle_automation_args() -> void:
 			print("HEXLOOM_STUDIO_CAPTURED: " + path)
 			get_tree().quit(0)
 			return
+
+
+func _run_self_checks() -> bool:
+	var expected_centers := [
+		Vector2(31, 301),
+		Vector2(31, 345),
+		Vector2(31, 389),
+		Vector2(31, 433)
+	]
+	for expected_index in expected_centers.size():
+		if _agent_index_at(expected_centers[expected_index]) != expected_index:
+			push_error("Agent row hit target does not match its visual row")
+			return false
+	if _agent_index_at(Vector2(31, 270)) != -1:
+		push_error("Agent hit target accepts space above the agent list")
+		return false
+	if _agent_index_at(Vector2(RAIL_W + 1, 301)) != -1:
+		push_error("Agent hit target accepts space outside the navigation rail")
+		return false
+	print("HEXLOOM_STUDIO_SELF_CHECKS_PASSED")
+	return true
 
 
 func _draw() -> void:
@@ -205,26 +251,15 @@ func _draw() -> void:
 
 
 func _draw_background_grid(rect: Rect2) -> void:
-	var grid_color := Color(0.16, 0.22, 0.19, 0.19)
-	var step := 24.0
-	var x := rect.position.x + 12.0
+	var dot_color := Color(0.58, 0.51, 0.41, 0.10)
+	var step := 32.0
+	var x := rect.position.x + 16.0
 	while x < rect.end.x:
-		draw_line(
-			Vector2(x, rect.position.y),
-			Vector2(x, rect.end.y),
-			grid_color,
-			1.0
-		)
+		var y := rect.position.y + 16.0
+		while y < rect.end.y:
+			draw_circle(Vector2(x, y), 0.8, dot_color)
+			y += step
 		x += step
-	var y := rect.position.y + 8.0
-	while y < rect.end.y:
-		draw_line(
-			Vector2(rect.position.x, y),
-			Vector2(rect.end.x, y),
-			grid_color,
-			1.0
-		)
-		y += step
 
 
 func _draw_top_bar(w: float, inspector_x: float) -> void:
@@ -235,39 +270,39 @@ func _draw_top_bar(w: float, inspector_x: float) -> void:
 
 	_draw_hex_mark(Vector2(28, 17), 12.0)
 	_text("HEXLOOM", Vector2(51, 25), 14, TEXT, true)
-	_text("STUDIO", Vector2(51, 41), 9, MUTED, true)
+	_text("creative workspace", Vector2(51, 41), 9, MUTED)
 
 	_text("⌘", Vector2(RAIL_W + 22, 35), 13, MUTED, true)
 	_text("coastal-observatory", Vector2(RAIL_W + 44, 29), 13, TEXT)
-	_text("/  world loom", Vector2(RAIL_W + 181, 29), 12, MUTED)
-	_badge(Vector2(RAIL_W + 302, 17), "MAIN", CYAN, false)
+	_text("/  workshop", Vector2(RAIL_W + 181, 29), 12, MUTED)
+	_badge(Vector2(RAIL_W + 276, 17), "DRAFT", CYAN, false)
 
 	var provider_x := inspector_x + 17.0
-	_live_dot(Vector2(provider_x + 4, 27), LIVE)
-	_text("ANTIGRAVITY", Vector2(provider_x + 17, 25), 10, TEXT, true)
-	_text("CONNECTED", Vector2(provider_x + 17, 40), 9, MUTED, true)
+	_live_dot(Vector2(provider_x + 4, 27), SAGE)
+	_text("Antigravity", Vector2(provider_x + 17, 25), 11, TEXT)
+	_text("connected", Vector2(provider_x + 17, 40), 10, MUTED)
 
 
 func _draw_left_rail(command_y: float) -> void:
 	draw_rect(Rect2(0, TOP_H, RAIL_W, command_y - TOP_H), SURFACE)
 	draw_line(Vector2(RAIL_W, TOP_H), Vector2(RAIL_W, command_y), BORDER, 1.0)
 
-	_label("WORKSPACE", Vector2(20, 88))
+	_label("Your workspace", Vector2(20, 88))
 	var navigation := [
-		["⌁", "World Loom", true],
-		["⌘", "Command Deck", false],
-		["◇", "Artifacts", false],
-		["◫", "Playground", false]
+		["⌁", "Workshop", true],
+		["⌘", "Plans", false],
+		["◇", "Assets", false],
+		["◫", "Playtest", false]
 	]
 	var nav_y := 108.0
 	for item in navigation:
 		_nav_item(nav_y, item[0], item[1], item[2])
 		nav_y += 38.0
 
-	_label("AGENT CREW", Vector2(20, 264))
+	_label("Agent team", Vector2(20, 264))
 	var agents := [
-		["OR", "Orchestrator", "routing", LIVE],
-		["AR", "Artisan", "generating", CYAN],
+		["OR", "Orchestrator", "planning", LIVE],
+		["AR", "Artisan", "creating", CYAN],
 		["EN", "Engineer", "ready", MUTED],
 		["QA", "Sentinel", "watching", AMBER]
 	]
@@ -278,12 +313,12 @@ func _draw_left_rail(command_y: float) -> void:
 
 	var memory_y := command_y - 139.0
 	draw_line(Vector2(20, memory_y), Vector2(RAIL_W - 20, memory_y), BORDER, 1.0)
-	_label("PROJECT MEMORY", Vector2(20, memory_y + 25))
+	_label("Project memory", Vector2(20, memory_y + 25))
 	_text("24", Vector2(20, memory_y + 54), 24, TEXT)
 	_text("durable decisions", Vector2(57, memory_y + 50), 11, MUTED)
-	_text("style DNA · 8", Vector2(20, memory_y + 77), 10, CYAN, true)
-	_text("mechanics · 11", Vector2(112, memory_y + 77), 10, AMBER, true)
-	_text("↗  Memory is shared with every agent", Vector2(20, memory_y + 104), 10, MUTED)
+	_text("visual style · 8", Vector2(20, memory_y + 77), 10, CYAN)
+	_text("mechanics · 11", Vector2(112, memory_y + 77), 10, AMBER)
+	_text("Hexloom shares this with every agent", Vector2(20, memory_y + 104), 10, MUTED)
 
 
 func _draw_work_area(inspector_x: float, command_y: float) -> void:
@@ -291,20 +326,20 @@ func _draw_work_area(inspector_x: float, command_y: float) -> void:
 	var width := inspector_x - x0
 	var map_bottom := minf(493.0, command_y - 260.0)
 
-	_text("WORLD LOOM", Vector2(x0 + 24, 88), 10, MUTED, true)
+	_text("Workshop", Vector2(x0 + 24, 88), 11, MUTED)
 	_text(
-		"Weave a colder shrine silhouette",
+		"Shape the shrine silhouette",
 		Vector2(x0 + 24, 116),
 		22,
 		TEXT
 	)
 	_text(
-		"One intent, four agents, six inspectable artifacts",
+		"Artisan is building the first draft from your world style.",
 		Vector2(x0 + 24, 139),
 		12,
 		MUTED
 	)
-	_badge(Vector2(inspector_x - 105, 78), "● WEAVING", LIVE, true)
+	_badge(Vector2(inspector_x - 102, 78), "● CREATING", LIVE, true)
 
 	var intent := Vector2(x0 + 60, 232)
 	var router := Vector2(x0 + width * 0.37, 232)
@@ -318,16 +353,16 @@ func _draw_work_area(inspector_x: float, command_y: float) -> void:
 	_thread(artisan + Vector2(61, 0), artifact - Vector2(58, 0), CYAN, true)
 	_thread(engineer + Vector2(61, 0), artifact - Vector2(58, 0), DIM, false)
 
-	_node(intent, Vector2(160, 82), "INTENT", "Shrine silhouette", "01", LIVE)
-	_node(router, Vector2(110, 72), "ROUTER", "Plan split", "02", LIVE)
+	_node(intent, Vector2(160, 82), "DIRECTION", "Shrine silhouette", "01", LIVE)
+	_node(router, Vector2(110, 72), "PLAN", "Four steps", "02", LIVE)
 	_node(artisan, Vector2(122, 72), "ARTISAN", "Mesh draft", "03", CYAN)
-	_node(engineer, Vector2(122, 72), "ENGINEER", "Await mesh", "04", MUTED)
-	_node(artifact, Vector2(116, 82), "OUTPUT", "shrine.glb", "05", AMBER)
+	_node(engineer, Vector2(122, 72), "ENGINEER", "Waiting", "04", MUTED)
+	_node(artifact, Vector2(116, 82), "RESULT", "shrine.glb", "05", AMBER)
 	_draw_weave_trace(
 		Rect2(x0 + 24, map_bottom - 83, width - 48, 52)
 	)
 
-	_text("LIVE EXECUTION", Vector2(x0 + 24, map_bottom + 31), 10, MUTED, true)
+	_text("Activity", Vector2(x0 + 24, map_bottom + 31), 11, MUTED)
 	_text("5 events", Vector2(inspector_x - 70, map_bottom + 31), 10, MUTED, true)
 	draw_line(
 		Vector2(x0, map_bottom),
@@ -343,7 +378,7 @@ func _draw_work_area(inspector_x: float, command_y: float) -> void:
 		"AR",
 		CYAN,
 		"Artisan",
-		"Generating a low-poly blockout with ceremonial proportions",
+		"Creating a low-poly blockout with ceremonial proportions",
 		"NOW",
 		true
 	)
@@ -352,7 +387,7 @@ func _draw_work_area(inspector_x: float, command_y: float) -> void:
 		"OR",
 		LIVE,
 		"Orchestrator",
-		"Split direction into mesh, material, lighting, and validation tasks",
+		"Prepared mesh, material, lighting, and validation steps",
 		"12s",
 		false
 	)
@@ -377,9 +412,8 @@ func _draw_work_area(inspector_x: float, command_y: float) -> void:
 
 
 func _draw_weave_trace(rect: Rect2) -> void:
-	draw_rect(rect, Color("#0F1612"), true)
-	draw_rect(rect, BORDER_SOFT, false, 1.0)
-	_text("WEAVE TRACE", rect.position + Vector2(13, 20), 9, MUTED, true)
+	_panel(rect, Color("#24221D"), BORDER_SOFT, 7)
+	_text("Generation progress", rect.position + Vector2(13, 20), 10, MUTED)
 	_text("42%", rect.position + Vector2(13, 39), 14, TEXT, true)
 
 	var track_x := rect.position.x + 67.0
@@ -399,7 +433,7 @@ func _draw_weave_trace(rect: Rect2) -> void:
 	var detail_x := rect.end.x - 210.0
 	_text("03 / 06", Vector2(detail_x, rect.position.y + 21), 9, CYAN, true)
 	_text(
-		"mesh blockout in progress",
+		"mesh draft in progress",
 		Vector2(detail_x, rect.position.y + 39),
 		10,
 		MUTED
@@ -427,50 +461,45 @@ func _draw_inspector(inspector_x: float, command_y: float) -> void:
 	)
 
 	var x := inspector_x + 20.0
-	_label("LIVE CONTEXT", Vector2(x, 88))
+	_label("World context", Vector2(x, 88))
 	_text("Coastal Observatory", Vector2(x, 118), 18, TEXT)
-	_text("world / visual language", Vector2(x, 139), 11, MUTED)
+	_text("Visual language and project rules", Vector2(x, 139), 11, MUTED)
 
 	_draw_section_line(inspector_x, 159.0, width)
-	_label("STYLE DNA", Vector2(x, 187))
+	_label("Style guide", Vector2(x, 187))
 	_property_row(x, 213, "geometry", "low-poly · soft bevel")
 	_property_row(x, 239, "palette", "cold stone · warm fire")
 	_property_row(x, 265, "silhouette", "exaggerated · readable")
 	_property_row(x, 291, "surface", "stylized PBR")
 
 	_draw_section_line(inspector_x, 316.0, width)
-	_label("CONSTRAINTS IN PLAY", Vector2(x, 345))
+	_label("Rules for this change", Vector2(x, 345))
 	_constraint(x, 372, "01", "Mobile triangle budget", "≤ 18k", LIVE)
 	_constraint(x, 414, "02", "Shrine remains traversable", "LOCKED", CYAN)
 	_constraint(x, 456, "03", "No photoreal materials", "STYLE", AMBER)
 
 	_draw_section_line(inspector_x, 492.0, width)
-	_label("ARTIFACTS", Vector2(x, 521))
+	_label("Expected assets", Vector2(x, 521))
 	_artifact_row(x, 548, "◇", "shrine_blockout.glb", "writing", CYAN)
 	_artifact_row(x, 588, "▦", "cold_stone_albedo", "queued", MUTED)
 	_artifact_row(x, 628, "⌁", "shrine_test.tscn", "waiting", MUTED)
 
 	var note_y := command_y - 109.0
-	draw_rect(
+	_panel(
 		Rect2(x, note_y, width - 40.0, 84.0),
 		RAISED,
-		true
-	)
-	draw_rect(
-		Rect2(x, note_y, width - 40.0, 84.0),
 		BORDER,
-		false,
-		1.0
+		8
 	)
-	_text("✦  WORLD MEMORY", Vector2(x + 13, note_y + 24), 10, LIVE, true)
-	_text("The last two games favored", Vector2(x + 13, note_y + 47), 11, TEXT)
+	_text("✦  A note from project memory", Vector2(x + 13, note_y + 24), 10, LIVE)
+	_text("Your recent worlds favored", Vector2(x + 13, note_y + 47), 11, TEXT)
 	_text("broad silhouettes over fine detail.", Vector2(x + 13, note_y + 65), 11, MUTED)
 
 
 func _draw_command_bar(inspector_x: float, command_y: float) -> void:
 	draw_rect(
 		Rect2(0, command_y, size.x, COMMAND_H),
-		Color("#0E1411")
+		Color("#1D1B17")
 	)
 	draw_line(
 		Vector2(0, command_y),
@@ -491,10 +520,10 @@ func _draw_command_bar(inspector_x: float, command_y: float) -> void:
 		1.0
 	)
 	_text("⌘", Vector2(24, command_y + 36), 18, LIVE, true)
-	_text("DIRECT THE LOOM", Vector2(50, command_y + 29), 10, TEXT, true)
-	_text("Natural language · project-aware", Vector2(50, command_y + 47), 10, MUTED)
-	_text("scope: world", Vector2(inspector_x + 20, command_y + 31), 10, MUTED, true)
-	_text("⌘ K  commands", Vector2(inspector_x + 20, command_y + 51), 10, DIM, true)
+	_text("Ask Hexloom", Vector2(50, command_y + 29), 11, TEXT)
+	_text("Describe a change, then review the plan", Vector2(50, command_y + 47), 10, MUTED)
+	_text("scope: world", Vector2(inspector_x + 20, command_y + 31), 10, MUTED)
+	_text("⌘ K  commands", Vector2(inspector_x + 20, command_y + 51), 10, DIM)
 
 
 func _draw_toast(inspector_x: float, command_y: float) -> void:
@@ -503,8 +532,12 @@ func _draw_toast(inspector_x: float, command_y: float) -> void:
 		inspector_x - toast_size.x - 16.0,
 		command_y - toast_size.y - 14.0
 	)
-	draw_rect(Rect2(toast_pos, toast_size), RAISED, true)
-	draw_rect(Rect2(toast_pos, toast_size), LIVE.darkened(0.45), false, 1.0)
+	_panel(
+		Rect2(toast_pos, toast_size),
+		RAISED,
+		LIVE.darkened(0.45),
+		8
+	)
 	_text("✓", toast_pos + Vector2(14, 29), 13, LIVE, true)
 	_text(toast_text, toast_pos + Vector2(38, 28), 11, TEXT)
 
@@ -521,8 +554,7 @@ func _draw_hex_mark(position: Vector2, radius: float) -> void:
 
 func _nav_item(y: float, icon: String, title: String, active: bool) -> void:
 	if active:
-		draw_rect(Rect2(12, y, RAIL_W - 24, 32), RAISED, true)
-		draw_rect(Rect2(12, y, RAIL_W - 24, 32), BORDER, false, 1.0)
+		_panel(Rect2(12, y, RAIL_W - 24, 32), RAISED, BORDER, 7)
 	_text(icon, Vector2(24, y + 21), 12, LIVE if active else MUTED, true)
 	_text(title, Vector2(49, y + 21), 12, TEXT if active else MUTED)
 	if active:
@@ -531,13 +563,12 @@ func _nav_item(y: float, icon: String, title: String, active: bool) -> void:
 
 func _agent_row(y: float, agent: Array, selected: bool) -> void:
 	if selected:
-		draw_rect(Rect2(12, y, RAIL_W - 24, 38), RAISED, true)
-		draw_rect(Rect2(12, y, RAIL_W - 24, 38), BORDER, false, 1.0)
+		_panel(Rect2(12, y, RAIL_W - 24, 38), RAISED, BORDER, 7)
 	draw_circle(Vector2(31, y + 19), 12.0, Color(agent[3], 0.12))
 	_text(agent[0], Vector2(24, y + 22), 9, agent[3], true)
 	_text(agent[1], Vector2(51, y + 17), 11, TEXT if selected else MUTED)
 	_text(agent[2], Vector2(51, y + 31), 9, agent[3], true)
-	if agent[2] == "generating":
+	if agent[2] == "creating":
 		_live_dot(Vector2(RAIL_W - 27, y + 18), agent[3])
 	else:
 		draw_circle(Vector2(RAIL_W - 27, y + 18), 3.0, agent[3])
@@ -552,8 +583,7 @@ func _node(
 	accent: Color
 ) -> void:
 	var rect := Rect2(center - node_size * 0.5, node_size)
-	draw_rect(rect, Color("#121A16"), true)
-	draw_rect(rect, BORDER, false, 1.0)
+	_panel(rect, Color("#25231E"), BORDER, 8)
 	draw_circle(rect.position + Vector2(16, 17), 3.0, accent)
 	_text(kind, rect.position + Vector2(26, 21), 9, accent, true)
 	_text(title, rect.position + Vector2(12, 48), 11, TEXT)
@@ -590,8 +620,7 @@ func _event_row(
 	active: bool
 ) -> void:
 	if active:
-		draw_rect(rect, Color("#121B17"), true)
-		draw_rect(rect, BORDER, false, 1.0)
+		_panel(rect, Color("#26251F"), BORDER, 7)
 	draw_circle(rect.position + Vector2(20, rect.size.y * 0.5), 11.0, Color(accent, 0.12))
 	_text(glyph, rect.position + Vector2(14, rect.size.y * 0.5 + 4), 9, accent, true)
 	_text(actor, rect.position + Vector2(42, 20), 10, accent, true)
@@ -626,7 +655,12 @@ func _artifact_row(
 	state: String,
 	color: Color
 ) -> void:
-	draw_rect(Rect2(x, y - 17, INSPECTOR_W - 40, 34), RAISED, true)
+	_panel(
+		Rect2(x, y - 17, INSPECTOR_W - 40, 34),
+		RAISED,
+		BORDER_SOFT,
+		6
+	)
 	_text(glyph, Vector2(x + 11, y + 4), 11, color, true)
 	_text(title, Vector2(x + 34, y + 3), 10, TEXT)
 	_text(state, Vector2(x + 205, y + 3), 8, color, true)
@@ -640,8 +674,12 @@ func _badge(
 ) -> void:
 	var badge_width := mono.get_string_size(label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 18.0
 	var rect := Rect2(position, Vector2(badge_width, 24))
-	draw_rect(rect, Color(color, 0.12 if filled else 0.04), true)
-	draw_rect(rect, Color(color, 0.45), false, 1.0)
+	_panel(
+		rect,
+		Color(color, 0.12 if filled else 0.04),
+		Color(color, 0.45),
+		6
+	)
 	_text(label_text, position + Vector2(9, 16), 9, color, true)
 
 
@@ -656,7 +694,7 @@ func _draw_section_line(x: float, y: float, width: float) -> void:
 
 
 func _label(label_text: String, position: Vector2) -> void:
-	_text(label_text, position, 9, MUTED, true)
+	_text(label_text, position, 10, MUTED)
 
 
 func _text(
