@@ -57,6 +57,11 @@ raw RGBA8 texture maps plus an `artifact.yaml` containing the provider, seed,
 dimensions, filenames, and FNV-1a checksums. Output is committed atomically and
 existing directories are never overwritten.
 
+Material Lab can load these raw maps into a Godot `StandardMaterial3D`. The
+automated Godot smoke test generates a temporary artifact through the real CLI,
+loads it through the native bridge, applies it to the preview sphere, and
+verifies the expected texture-loading signal.
+
 ## Repository layout
 
 ```text

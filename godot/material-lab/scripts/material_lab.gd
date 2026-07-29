@@ -18,9 +18,11 @@ func _ready() -> void:
 
 func _validate_with_cpp() -> Dictionary:
 	var bridge := HexloomMaterialBridge.new()
-	var specification_path := ProjectSettings.globalize_path(
-		"res://../../games/material-lab/game.yaml"
-	)
+	var specification_path := OS.get_environment("HEXLOOM_SPEC_PATH")
+	if specification_path.is_empty():
+		specification_path = ProjectSettings.globalize_path(
+			"res://../../games/material-lab/game.yaml"
+		)
 	return bridge.validate_material_file(specification_path)
 
 
@@ -58,11 +60,82 @@ func _create_preview_object() -> void:
 	mesh_instance.mesh = sphere
 
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color("#5e719d")
-	material.metallic = 0.15
-	material.roughness = 0.72
+	var artifact_directory := OS.get_environment(
+		"HEXLOOM_ARTIFACT_DIRECTORY"
+	)
+	if artifact_directory.is_empty():
+		material.albedo_color = Color("#5e719d")
+		material.metallic = 0.15
+		material.roughness = 0.72
+	else:
+		if not _apply_texture_artifact(material, artifact_directory):
+			get_tree().quit(1)
+			return
 	mesh_instance.material_override = material
 	add_child(mesh_instance)
+
+
+func _apply_texture_artifact(
+	material: StandardMaterial3D,
+	artifact_directory: String
+) -> bool:
+	var resolution := int(validation_result.get("resolution", 0))
+	var material_id := str(validation_result.get("material_id", ""))
+	if resolution <= 0 or material_id.is_empty():
+		push_error("Hexloom artifact metadata is invalid")
+		return false
+
+	var albedo := _load_raw_texture(
+		artifact_directory.path_join(material_id + "_albedo.rgba8"),
+		resolution
+	)
+	var normal := _load_raw_texture(
+		artifact_directory.path_join(material_id + "_normal.rgba8"),
+		resolution
+	)
+	var roughness := _load_raw_texture(
+		artifact_directory.path_join(material_id + "_roughness.rgba8"),
+		resolution
+	)
+	if albedo == null or normal == null or roughness == null:
+		return false
+
+	material.albedo_texture = albedo
+	material.normal_enabled = true
+	material.normal_texture = normal
+	material.roughness = 1.0
+	material.roughness_texture = roughness
+	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	print(
+		"Hexloom texture artifact loaded: material=%s resolution=%d"
+		% [material_id, resolution]
+	)
+	return true
+
+
+func _load_raw_texture(path: String, resolution: int) -> ImageTexture:
+	if not FileAccess.file_exists(path):
+		push_error("Hexloom texture map is missing: " + path)
+		return null
+
+	var bytes := FileAccess.get_file_as_bytes(path)
+	var expected_size := resolution * resolution * 4
+	if bytes.size() != expected_size:
+		push_error(
+			"Hexloom texture map has invalid size: %s (%d != %d)"
+			% [path, bytes.size(), expected_size]
+		)
+		return null
+
+	var image := Image.create_from_data(
+		resolution,
+		resolution,
+		false,
+		Image.FORMAT_RGBA8,
+		bytes
+	)
+	image.generate_mipmaps()
+	return ImageTexture.create_from_image(image)
 
 
 func _create_interface() -> void:

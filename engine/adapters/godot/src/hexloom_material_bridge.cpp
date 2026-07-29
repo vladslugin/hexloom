@@ -87,6 +87,15 @@ namespace {
     result["style_id"] = request == nullptr
         ? godot::String{}
         : godot::String(request->style_id.c_str());
+    result["resolution"] =
+        request == nullptr ? 0 : static_cast<std::int64_t>(request->resolution);
+    godot::Array maps;
+    if (request != nullptr) {
+        for (const auto map : request->maps) {
+            maps.push_back(godot::String(to_string(map).data()));
+        }
+    }
+    result["maps"] = maps;
     result["issues"] = serialized_issues;
     return result;
 }
