@@ -1,5 +1,17 @@
 art_style:
   id: soft_neon_scifi
+  geometry: low_poly
+  silhouettes: exaggerated
+  edges: soft_beveled
+  texture_style: stylized_pbr
+  lighting: atmospheric
+  realism: 0.25
+  palette:
+    base: "#576a91"
+    secondary: "#263147"
+    accent: "#49d6ff"
+  forbidden:
+    - photorealism
 
 material:
   id: ancient_stone_floor

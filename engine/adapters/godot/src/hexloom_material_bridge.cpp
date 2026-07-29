@@ -128,6 +128,18 @@ godot::Dictionary HexloomMaterialBridge::validate_material_file(
     const MaterialRequest* request =
         loaded.request.has_value() ? &*loaded.request : nullptr;
     auto result = serialize_result(request, loaded.issues);
+    if (loaded.style.has_value()) {
+        godot::Dictionary style;
+        style["id"] = godot::String(loaded.style->id.c_str());
+        style["geometry"] =
+            godot::String(loaded.style->geometry.c_str());
+        style["texture_style"] =
+            godot::String(loaded.style->texture_style.c_str());
+        style["lighting"] =
+            godot::String(loaded.style->lighting.c_str());
+        style["realism"] = loaded.style->realism;
+        result["art_style"] = style;
+    }
 
     godot::UtilityFunctions::print(
         "Hexloom C++ specification: path=",

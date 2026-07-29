@@ -37,6 +37,7 @@ int main() {
         hexloom::load_material_request(fixtures / "valid_game.yaml");
     check(valid.ok(), "valid YAML specification should load");
     check(valid.request.has_value(), "valid result should contain a request");
+    check(valid.style.has_value(), "valid result should contain an art style");
     if (valid.request.has_value()) {
         check(
             valid.request->id == "ancient_stone_floor",
@@ -49,6 +50,17 @@ int main() {
         check(
             valid.request->maps.size() == 4,
             "loader should parse all requested maps"
+        );
+    }
+    if (valid.style.has_value()) {
+        check(
+            valid.style->geometry == "low_poly",
+            "loader should parse geometry style"
+        );
+        check(
+            valid.style->accent_color ==
+                hexloom::RgbColor{.red = 73, .green = 214, .blue = 255},
+            "loader should parse hexadecimal palette colors"
         );
     }
 
@@ -66,6 +78,18 @@ int main() {
     check(
         has_issue(invalid, "material.maps"),
         "missing albedo map should be diagnosed"
+    );
+    check(
+        has_issue(invalid, "art_style.geometry"),
+        "unsupported geometry should be diagnosed"
+    );
+    check(
+        has_issue(invalid, "art_style.realism"),
+        "out-of-range realism should be diagnosed"
+    );
+    check(
+        has_issue(invalid, "art_style.palette.base"),
+        "invalid palette color should be diagnosed"
     );
 
     const auto malformed =

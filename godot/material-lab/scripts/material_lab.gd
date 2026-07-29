@@ -1,7 +1,6 @@
 extends Node3D
 
 const MATERIAL_ID := "ancient_stone_floor"
-const STYLE_ID := "soft_neon_scifi"
 
 var validation_result: Dictionary
 
@@ -12,7 +11,11 @@ func _ready() -> void:
 	_create_interface()
 	print(
 		"Hexloom Material Lab ready: material=%s style=%s valid=%s"
-		% [MATERIAL_ID, STYLE_ID, validation_result.get("valid", false)]
+		% [
+			MATERIAL_ID,
+			validation_result.get("style_id", ""),
+			validation_result.get("valid", false)
+		]
 	)
 
 
@@ -159,7 +162,7 @@ func _create_interface() -> void:
 	label.text = (
 		"HEXLOOM / MATERIAL LAB\n\n"
 		+ "Material: %s\n" % MATERIAL_ID
-		+ "Style: %s\n" % STYLE_ID
+		+ "Style: %s\n" % validation_result.get("style_id", "")
 		+ "Status: %s\n\n" % validation_status
 		+ "Next: connect Texture Agent output"
 	)

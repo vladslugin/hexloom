@@ -1,5 +1,16 @@
 art_style:
   id: test_style
+  geometry: voxels
+  silhouettes: exaggerated
+  edges: soft_beveled
+  texture_style: stylized_pbr
+  lighting: atmospheric
+  realism: 1.5
+  palette:
+    base: blue
+    secondary: "#263147"
+    accent: "#49d6ff"
+  forbidden: []
 
 material:
   id: broken_material

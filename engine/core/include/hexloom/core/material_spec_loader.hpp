@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hexloom/core/art_style.hpp"
 #include "hexloom/core/material_request.hpp"
 
 #include <filesystem>
@@ -10,10 +11,11 @@ namespace hexloom {
 
 struct MaterialLoadResult {
     std::optional<MaterialRequest> request;
+    std::optional<ArtStyleProfile> style;
     std::vector<ValidationIssue> issues;
 
     [[nodiscard]] bool ok() const {
-        return request.has_value() && issues.empty();
+        return request.has_value() && style.has_value() && issues.empty();
     }
 };
 

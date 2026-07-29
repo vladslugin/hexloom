@@ -4,15 +4,21 @@ game:
   type: technical_demo
 
 art_style:
-  id: soft_neon_scifi
-  shapes: rounded
-  detail_level: medium
-  contrast: high
-  saturation: 0.75
+  id: hexloom_stylized_lowpoly
+  geometry: low_poly
+  silhouettes: exaggerated
+  edges: soft_beveled
+  texture_style: stylized_pbr
+  lighting: atmospheric
+  realism: 0.25
+  palette:
+    base: "#576a91"
+    secondary: "#263147"
+    accent: "#49d6ff"
   forbidden:
     - photorealism
     - visible_text
-    - directional_lighting
+    - micro_details
 
 material:
   id: ancient_stone_floor

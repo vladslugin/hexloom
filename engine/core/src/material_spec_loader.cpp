@@ -1,8 +1,11 @@
 #include "hexloom/core/material_spec_loader.hpp"
 
+#include "hexloom/core/art_style.hpp"
+
 #include <yaml-cpp/yaml.h>
 
 #include <cstdint>
+#include <charconv>
 #include <limits>
 #include <optional>
 #include <string>
@@ -66,6 +69,159 @@ bool read_required(
     return std::nullopt;
 }
 
+[[nodiscard]] std::optional<RgbColor> parse_hex_color(
+    const YAML::Node& node,
+    std::string field,
+    std::vector<ValidationIssue>& issues
+) {
+    if (!node || node.IsNull()) {
+        add_issue(issues, std::move(field), "Required color is missing.");
+        return std::nullopt;
+    }
+
+    std::string value;
+    try {
+        value = node.as<std::string>();
+    } catch (const YAML::Exception&) {
+        add_issue(issues, std::move(field), "Color must be a string.");
+        return std::nullopt;
+    }
+
+    if (value.size() != 7 || value.front() != '#') {
+        add_issue(
+            issues,
+            std::move(field),
+            "Color must use #RRGGBB format."
+        );
+        return std::nullopt;
+    }
+
+    std::uint32_t packed = 0;
+    const auto parsed = std::from_chars(
+        value.data() + 1,
+        value.data() + value.size(),
+        packed,
+        16
+    );
+    if (parsed.ec != std::errc{} ||
+        parsed.ptr != value.data() + value.size()) {
+        add_issue(
+            issues,
+            std::move(field),
+            "Color contains invalid hexadecimal digits."
+        );
+        return std::nullopt;
+    }
+
+    return RgbColor{
+        .red = static_cast<std::uint8_t>((packed >> 16) & 0xFF),
+        .green = static_cast<std::uint8_t>((packed >> 8) & 0xFF),
+        .blue = static_cast<std::uint8_t>(packed & 0xFF),
+    };
+}
+
+void read_art_style(
+    const YAML::Node& node,
+    ArtStyleProfile& style,
+    std::vector<ValidationIssue>& issues
+) {
+    read_required(node, "id", "art_style.id", style.id, issues);
+    read_required(
+        node,
+        "geometry",
+        "art_style.geometry",
+        style.geometry,
+        issues
+    );
+    read_required(
+        node,
+        "silhouettes",
+        "art_style.silhouettes",
+        style.silhouettes,
+        issues
+    );
+    read_required(node, "edges", "art_style.edges", style.edges, issues);
+    read_required(
+        node,
+        "texture_style",
+        "art_style.texture_style",
+        style.texture_style,
+        issues
+    );
+    read_required(
+        node,
+        "lighting",
+        "art_style.lighting",
+        style.lighting,
+        issues
+    );
+    read_required(
+        node,
+        "realism",
+        "art_style.realism",
+        style.realism,
+        issues
+    );
+
+    const YAML::Node palette = node["palette"];
+    if (!palette || !palette.IsMap()) {
+        add_issue(
+            issues,
+            "art_style.palette",
+            "Required section must be a map."
+        );
+    } else {
+        if (const auto color = parse_hex_color(
+                palette["base"],
+                "art_style.palette.base",
+                issues
+            )) {
+            style.base_color = *color;
+        }
+        if (const auto color = parse_hex_color(
+                palette["secondary"],
+                "art_style.palette.secondary",
+                issues
+            )) {
+            style.secondary_color = *color;
+        }
+        if (const auto color = parse_hex_color(
+                palette["accent"],
+                "art_style.palette.accent",
+                issues
+            )) {
+            style.accent_color = *color;
+        }
+    }
+
+    const YAML::Node forbidden = node["forbidden"];
+    if (!forbidden || !forbidden.IsSequence()) {
+        add_issue(
+            issues,
+            "art_style.forbidden",
+            "Required field must be a sequence."
+        );
+    } else {
+        for (std::size_t index = 0; index < forbidden.size(); ++index) {
+            try {
+                style.forbidden.push_back(
+                    forbidden[index].as<std::string>()
+                );
+            } catch (const YAML::Exception&) {
+                add_issue(
+                    issues,
+                    "art_style.forbidden[" + std::to_string(index) + "]",
+                    "Forbidden trait must be a string."
+                );
+            }
+        }
+    }
+
+    for (const auto& issue : validate(style)) {
+        add_issue(issues, "art_style." + issue.field, issue.message);
+    }
+}
+
 void read_maps(
     const YAML::Node& material,
     MaterialRequest& request,
@@ -105,6 +261,7 @@ void read_maps(
 [[nodiscard]] MaterialLoadResult parse_root(const YAML::Node& root) {
     MaterialLoadResult result;
     MaterialRequest request;
+    ArtStyleProfile style;
 
     if (!root.IsMap()) {
         add_issue(result.issues, "$", "Specification root must be a map.");
@@ -119,13 +276,8 @@ void read_maps(
             "Required section must be a map."
         );
     } else {
-        read_required(
-            art_style,
-            "id",
-            "art_style.id",
-            request.style_id,
-            result.issues
-        );
+        read_art_style(art_style, style, result.issues);
+        request.style_id = style.id;
     }
 
     const YAML::Node material = root["material"];
@@ -204,6 +356,7 @@ void read_maps(
         );
     }
     result.request = std::move(request);
+    result.style = std::move(style);
     return result;
 }
 

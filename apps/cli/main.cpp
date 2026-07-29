@@ -47,6 +47,7 @@ int validate_command(const std::filesystem::path& specification_path) {
     const auto& request = *result.request;
     std::cout << "Hexloom material request: " << request.id << '\n'
               << "style: " << request.style_id << '\n'
+              << "geometry: " << result.style->geometry << '\n'
               << "status: ready\n"
               << "maps:";
     for (const auto map : request.maps) {

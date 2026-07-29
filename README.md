@@ -52,6 +52,10 @@ the native adapter compiles only the Godot classes it actually uses.
 Godot GDExtension parse it through the same C++ loader and return structured
 validation issues for malformed or unsupported input.
 
+The art style is also structured and validated. The first profile is
+`hexloom_stylized_lowpoly`: low-poly geometry, exaggerated silhouettes, soft
+bevels, stylized PBR surfaces, atmospheric lighting, and a limited palette.
+
 The first Texture Generator provider is deterministic and offline. It writes
 raw RGBA8 texture maps plus an `artifact.yaml` containing the provider, seed,
 dimensions, filenames, and FNV-1a checksums. Output is committed atomically and
