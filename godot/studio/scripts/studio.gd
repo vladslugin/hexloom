@@ -26,6 +26,17 @@ var run_button: Button
 var pause_button: Button
 var preview_container: SubViewportContainer
 var preview_viewport: SubViewport
+var preview_camera: Camera3D
+var preview_shrine: Node3D
+var preview_material_ball: MeshInstance3D
+var preview_object_button: Button
+var preview_material_button: Button
+var preview_reset_button: Button
+var preview_yaw := 0.73
+var preview_pitch := 0.31
+var preview_distance := 10.2
+var preview_dragging := false
+var preview_has_focus := false
 var selected_agent := 1
 var pulse := 0.0
 var toast_text := ""
@@ -132,7 +143,23 @@ func _create_controls() -> void:
 func _create_preview() -> void:
 	preview_container = SubViewportContainer.new()
 	preview_container.stretch = true
-	preview_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
+	preview_container.focus_mode = Control.FOCUS_ALL
+	preview_container.mouse_default_cursor_shape = Control.CURSOR_MOVE
+	preview_container.tooltip_text = (
+		"Drag or arrow keys to orbit · Scroll to zoom · R to reset"
+	)
+	preview_container.gui_input.connect(_on_preview_input)
+	preview_container.focus_entered.connect(
+		func() -> void:
+			preview_has_focus = true
+			queue_redraw()
+	)
+	preview_container.focus_exited.connect(
+		func() -> void:
+			preview_has_focus = false
+			queue_redraw()
+	)
 	preview_container.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	add_child(preview_container)
 
@@ -165,16 +192,16 @@ func _create_preview() -> void:
 	)
 	scene_root.add_child(ground)
 
-	var shrine := Node3D.new()
-	shrine.rotation_degrees.y = -12.0
-	scene_root.add_child(shrine)
+	preview_shrine = Node3D.new()
+	preview_shrine.rotation_degrees.y = -12.0
+	scene_root.add_child(preview_shrine)
 
 	var base_lower_mesh := CylinderMesh.new()
 	base_lower_mesh.top_radius = 2.65
 	base_lower_mesh.bottom_radius = 2.82
 	base_lower_mesh.height = 0.34
 	base_lower_mesh.radial_segments = 8
-	shrine.add_child(
+	preview_shrine.add_child(
 		_preview_mesh(
 			base_lower_mesh,
 			Vector3(0, 0.17, 0),
@@ -188,7 +215,7 @@ func _create_preview() -> void:
 	base_upper_mesh.bottom_radius = 2.48
 	base_upper_mesh.height = 0.3
 	base_upper_mesh.radial_segments = 8
-	shrine.add_child(
+	preview_shrine.add_child(
 		_preview_mesh(
 			base_upper_mesh,
 			Vector3(0, 0.49, 0),
@@ -199,7 +226,7 @@ func _create_preview() -> void:
 
 	var wall_mesh := BoxMesh.new()
 	wall_mesh.size = Vector3(3.65, 2.15, 0.32)
-	shrine.add_child(
+	preview_shrine.add_child(
 		_preview_mesh(
 			wall_mesh,
 			Vector3(0, 1.72, -0.88),
@@ -215,7 +242,7 @@ func _create_preview() -> void:
 	column_mesh.radial_segments = 8
 	for column_x in [-1.55, 1.55]:
 		for column_z in [-0.72, 0.72]:
-			shrine.add_child(
+			preview_shrine.add_child(
 				_preview_mesh(
 					column_mesh,
 					Vector3(column_x, 1.72, column_z),
@@ -229,7 +256,7 @@ func _create_preview() -> void:
 	roof_mesh.bottom_radius = 2.55
 	roof_mesh.height = 1.02
 	roof_mesh.radial_segments = 6
-	shrine.add_child(
+	preview_shrine.add_child(
 		_preview_mesh(
 			roof_mesh,
 			Vector3(0, 3.39, 0),
@@ -240,7 +267,7 @@ func _create_preview() -> void:
 
 	var altar_mesh := BoxMesh.new()
 	altar_mesh.size = Vector3(1.1, 0.72, 0.7)
-	shrine.add_child(
+	preview_shrine.add_child(
 		_preview_mesh(
 			altar_mesh,
 			Vector3(0, 0.98, -0.15),
@@ -269,12 +296,178 @@ func _create_preview() -> void:
 	fill_light.light_energy = 0.42
 	scene_root.add_child(fill_light)
 
-	var camera := Camera3D.new()
-	camera.position = Vector3(6.8, 4.7, 7.6)
-	camera.look_at_from_position(camera.position, Vector3(0, 1.55, 0))
-	camera.fov = 38.0
-	camera.current = true
-	scene_root.add_child(camera)
+	var material_ball_mesh := SphereMesh.new()
+	material_ball_mesh.radius = 1.55
+	material_ball_mesh.height = 3.1
+	material_ball_mesh.radial_segments = 48
+	material_ball_mesh.rings = 24
+	preview_material_ball = _preview_mesh(
+		material_ball_mesh,
+		Vector3(0, 1.72, 0),
+		Color("#656967"),
+		0.76
+	)
+	preview_material_ball.visible = false
+	scene_root.add_child(preview_material_ball)
+
+	preview_camera = Camera3D.new()
+	preview_camera.fov = 38.0
+	preview_camera.current = true
+	scene_root.add_child(preview_camera)
+	_update_preview_camera()
+
+	_create_preview_controls()
+
+
+func _create_preview_controls() -> void:
+	preview_object_button = _preview_button("Object")
+	preview_object_button.tooltip_text = "Inspect the generated model"
+	preview_object_button.pressed.connect(
+		func() -> void: _set_preview_mode(false)
+	)
+	add_child(preview_object_button)
+
+	preview_material_button = _preview_button("Material")
+	preview_material_button.tooltip_text = "Inspect the surface material"
+	preview_material_button.pressed.connect(
+		func() -> void: _set_preview_mode(true)
+	)
+	add_child(preview_material_button)
+
+	preview_reset_button = _preview_button("Reset")
+	preview_reset_button.tooltip_text = "Reset preview camera"
+	preview_reset_button.pressed.connect(_reset_preview_camera)
+	add_child(preview_reset_button)
+	_refresh_preview_button_styles(false)
+
+
+func _preview_button(label_text: String) -> Button:
+	var button := Button.new()
+	button.text = label_text
+	button.focus_mode = Control.FOCUS_ALL
+	button.add_theme_font_size_override("font_size", 11)
+	button.add_theme_color_override("font_color", MUTED)
+	button.add_theme_color_override("font_hover_color", TEXT)
+	button.add_theme_color_override("font_focus_color", TEXT)
+	button.add_theme_stylebox_override(
+		"normal",
+		_style(SURFACE, BORDER, 6, 10, 0)
+	)
+	button.add_theme_stylebox_override(
+		"hover",
+		_style(RAISED, MUTED.darkened(0.22), 6, 10, 0)
+	)
+	button.add_theme_stylebox_override(
+		"focus",
+		_style(RAISED, LIVE, 6, 10, 0, 2)
+	)
+	button.add_theme_stylebox_override(
+		"pressed",
+		_style(RAISED, LIVE.darkened(0.18), 6, 10, 0)
+	)
+	return button
+
+
+func _set_preview_mode(show_material: bool) -> void:
+	preview_shrine.visible = not show_material
+	preview_material_ball.visible = show_material
+	_refresh_preview_button_styles(show_material)
+	if show_material:
+		preview_distance = 7.4
+	else:
+		preview_distance = 10.2
+	_update_preview_camera()
+
+
+func _refresh_preview_button_styles(show_material: bool) -> void:
+	var selected := _style(
+		Color(LIVE, 0.12),
+		Color(LIVE, 0.58),
+		6,
+		10,
+		0
+	)
+	var resting := _style(SURFACE, BORDER, 6, 10, 0)
+	preview_object_button.add_theme_stylebox_override(
+		"normal",
+		resting if show_material else selected
+	)
+	preview_material_button.add_theme_stylebox_override(
+		"normal",
+		selected if show_material else resting
+	)
+	preview_object_button.add_theme_color_override(
+		"font_color",
+		MUTED if show_material else LIVE
+	)
+	preview_material_button.add_theme_color_override(
+		"font_color",
+		LIVE if show_material else MUTED
+	)
+
+
+func _on_preview_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			preview_dragging = event.pressed
+			if event.pressed:
+				preview_container.grab_focus()
+			if event.double_click:
+				_reset_preview_camera()
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			preview_distance = maxf(5.2, preview_distance - 0.65)
+			_update_preview_camera()
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			preview_distance = minf(13.5, preview_distance + 0.65)
+			_update_preview_camera()
+	elif event is InputEventMouseMotion and preview_dragging:
+		preview_yaw -= event.relative.x * 0.009
+		preview_pitch = clampf(
+			preview_pitch - event.relative.y * 0.007,
+			0.08,
+			0.78
+		)
+		_update_preview_camera()
+	elif event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_LEFT:
+				preview_yaw += 0.12
+			KEY_RIGHT:
+				preview_yaw -= 0.12
+			KEY_UP:
+				preview_pitch = minf(0.78, preview_pitch + 0.08)
+			KEY_DOWN:
+				preview_pitch = maxf(0.08, preview_pitch - 0.08)
+			KEY_EQUAL, KEY_KP_ADD:
+				preview_distance = maxf(5.2, preview_distance - 0.65)
+			KEY_MINUS, KEY_KP_SUBTRACT:
+				preview_distance = minf(13.5, preview_distance + 0.65)
+			KEY_R:
+				_reset_preview_camera()
+				return
+			_:
+				return
+		_update_preview_camera()
+
+
+func _reset_preview_camera() -> void:
+	preview_yaw = 0.73
+	preview_pitch = 0.31
+	preview_distance = 7.4 if preview_material_ball.visible else 10.2
+	_update_preview_camera()
+
+
+func _update_preview_camera() -> void:
+	if preview_camera == null:
+		return
+	var target := Vector3(0, 1.55, 0)
+	var horizontal := cos(preview_pitch) * preview_distance
+	var offset := Vector3(
+		sin(preview_yaw) * horizontal,
+		sin(preview_pitch) * preview_distance,
+		cos(preview_yaw) * horizontal
+	)
+	preview_camera.look_at_from_position(target + offset, target)
 
 
 func _preview_mesh(
@@ -301,6 +494,12 @@ func _layout_controls() -> void:
 	var preview_rect := _preview_rect(inspector_x)
 	preview_container.position = preview_rect.position + Vector2(1, 1)
 	preview_container.size = preview_rect.size - Vector2(2, 2)
+	preview_object_button.position = Vector2(preview_rect.end.x - 210, 145)
+	preview_object_button.size = Vector2(64, 28)
+	preview_material_button.position = Vector2(preview_rect.end.x - 140, 145)
+	preview_material_button.size = Vector2(76, 28)
+	preview_reset_button.position = Vector2(preview_rect.end.x - 58, 145)
+	preview_reset_button.size = Vector2(58, 28)
 	command_field.position = Vector2(RAIL_W + 24.0, command_y + 19.0)
 	command_field.size = Vector2(
 		maxf(320.0, inspector_x - RAIL_W - 252.0),
@@ -368,6 +567,9 @@ func _pause_weave() -> void:
 
 func _handle_automation_args() -> void:
 	for argument in OS.get_cmdline_user_args():
+		if argument == "--material-preview":
+			_set_preview_mode(true)
+			continue
 		if argument == "--smoke-test":
 			if not _run_self_checks():
 				get_tree().quit(1)
@@ -376,6 +578,7 @@ func _handle_automation_args() -> void:
 			return
 		if argument.begins_with("--capture="):
 			var path := argument.trim_prefix("--capture=")
+			await RenderingServer.frame_post_draw
 			var image := get_viewport().get_texture().get_image()
 			var error := image.save_png(path)
 			if error != OK:
@@ -391,12 +594,52 @@ func _run_self_checks() -> bool:
 	if preview_container == null or preview_viewport == null:
 		push_error("Studio preview was not created")
 		return false
+	if (
+		preview_object_button == null
+		or preview_material_button == null
+		or preview_reset_button == null
+	):
+		push_error("Studio preview controls were not created")
+		return false
 	if preview_viewport.get_camera_3d() == null:
 		push_error("Studio preview has no active camera")
 		return false
 	if _preview_rect(size.x - INSPECTOR_W).size.x < 400.0:
 		push_error("Studio preview is too narrow at the reference viewport")
 		return false
+	_set_preview_mode(true)
+	if (
+		not preview_material_ball.visible
+		or preview_shrine.visible
+		or not is_equal_approx(preview_distance, 7.4)
+	):
+		push_error("Studio material preview mode is inconsistent")
+		return false
+	_set_preview_mode(false)
+	if (
+		preview_material_ball.visible
+		or not preview_shrine.visible
+		or not is_equal_approx(preview_distance, 10.2)
+	):
+		push_error("Studio object preview mode is inconsistent")
+		return false
+	var starting_yaw := preview_yaw
+	var orbit_key := InputEventKey.new()
+	orbit_key.pressed = true
+	orbit_key.keycode = KEY_LEFT
+	_on_preview_input(orbit_key)
+	if preview_yaw <= starting_yaw:
+		push_error("Studio keyboard orbit control did not move the camera")
+		return false
+	_reset_preview_camera()
+	var zoom_event := InputEventMouseButton.new()
+	zoom_event.pressed = true
+	zoom_event.button_index = MOUSE_BUTTON_WHEEL_UP
+	_on_preview_input(zoom_event)
+	if preview_distance >= 10.2:
+		push_error("Studio mouse zoom control did not move the camera")
+		return false
+	_reset_preview_camera()
 	var expected_centers := [
 		Vector2(31, 301),
 		Vector2(31, 345),
@@ -535,7 +778,7 @@ func _draw_work_area(inspector_x: float, command_y: float) -> void:
 	_panel(
 		preview_rect,
 		Color("#24221D"),
-		BORDER,
+		LIVE if preview_has_focus else BORDER,
 		10
 	)
 

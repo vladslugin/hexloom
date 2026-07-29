@@ -86,6 +86,8 @@ Hexloom Studio is the first interactive shell for directing that work. Its
 Godot project presents a native 3D artifact preview, compact generation plan,
 specialized agent crew, live execution stream, durable project memory, artifact
 context, and a project-aware command field in one creator-focused workspace.
+The preview supports mouse orbit, wheel zoom, keyboard camera controls, camera
+reset, and object/material inspection modes.
 
 ## Repository layout
 

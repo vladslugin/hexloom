@@ -139,9 +139,9 @@
     {
       "name": "Artifact Preview",
       "kind": "custom",
-      "description": "The primary workspace stage for a generated model, texture, scene, or code artifact.",
-      "html": "<figure class=\"ds-artifact-preview\"><div aria-label=\"Low-poly shrine preview\">3D artifact viewport</div><figcaption>Shrine preview</figcaption></figure>",
-      "css": ".ds-artifact-preview { width:440px; margin:0; color:#AAA193; font:500 11px/1.4 system-ui, sans-serif; } .ds-artifact-preview div { display:grid; place-items:center; aspect-ratio:16/9; margin-top:8px; background:#211F1A; color:#F0E9DC; border:1px solid #3B382F; border-radius:10px; } .ds-artifact-preview:focus-within div { border-color:#E7A978; box-shadow:0 0 0 2px rgba(231,169,120,.18); }"
+      "description": "The primary workspace stage for a generated artifact, with object/material modes and accessible camera controls.",
+      "html": "<figure class=\"ds-artifact-preview\"><figcaption>Shrine preview <span>Object · Material · Reset</span></figcaption><div tabindex=\"0\" aria-label=\"Low-poly shrine preview. Drag or use arrow keys to orbit.\">3D artifact viewport</div></figure>",
+      "css": ".ds-artifact-preview { width:440px; margin:0; color:#AAA193; font:500 11px/1.4 system-ui, sans-serif; } .ds-artifact-preview figcaption { display:flex; justify-content:space-between; align-items:center; } .ds-artifact-preview figcaption span { color:#E7A978; } .ds-artifact-preview div { display:grid; place-items:center; aspect-ratio:16/9; margin-top:8px; background:#211F1A; color:#F0E9DC; border:1px solid #3B382F; border-radius:10px; } .ds-artifact-preview div:focus-visible { outline:none; border-color:#E7A978; box-shadow:0 0 0 2px rgba(231,169,120,.18); }"
     },
     {
       "name": "Workbench Panel",

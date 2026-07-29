@@ -227,6 +227,8 @@ The selected game artifact owns the largest region of the workspace. Models
 render in a real native 3D viewport with neutral studio lighting, enough
 environment to judge silhouette, and no decorative HUD. The generation plan
 sits beside the preview as supporting context, never on top of the work.
+Object and material modes share one compact toolbar. Orbit, zoom, reset, and
+keyboard focus must remain discoverable without covering the artifact.
 
 ## 6. Do's and Don'ts
 
