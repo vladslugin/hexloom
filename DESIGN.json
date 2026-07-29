@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-29T00:00:00Z",
+  "title": "Design System: Hexloom Studio",
+  "extensions": {
+    "colorMeta": {
+      "void-graphite": {
+        "role": "neutral",
+        "displayName": "Void Graphite",
+        "canonical": "#0B0F0D",
+        "tonalRamp": ["#08100C", "#0B1711", "#14261C", "#25392E", "#405649", "#65786C", "#A2B0A8", "#E5EBE7"]
+      },
+      "loom-surface": {
+        "role": "neutral",
+        "displayName": "Loom Surface",
+        "canonical": "#111713",
+        "tonalRamp": ["#09100C", "#111713", "#1A251E", "#2A3A30", "#46594C", "#687B6F", "#A5B3AA", "#E7ECE9"]
+      },
+      "raised-workbench": {
+        "role": "neutral",
+        "displayName": "Raised Workbench",
+        "canonical": "#17201B",
+        "tonalRamp": ["#0B110E", "#17201B", "#213129", "#34493D", "#506658", "#738579", "#ABB8B0", "#E9EDEB"]
+      },
+      "thread-border": {
+        "role": "neutral",
+        "displayName": "Thread Border",
+        "canonical": "#29362F",
+        "tonalRamp": ["#101612", "#1B2620", "#29362F", "#3B4E43", "#566B5E", "#798B80", "#B0BCB5", "#EBEFED"]
+      },
+      "woven-text": {
+        "role": "neutral",
+        "displayName": "Woven Text",
+        "canonical": "#D9E4DE",
+        "tonalRamp": ["#15201A", "#26372E", "#42584C", "#62766B", "#84978C", "#A7B7AE", "#C7D3CC", "#EEF3F0"]
+      },
+      "quiet-text": {
+        "role": "neutral",
+        "displayName": "Quiet Text",
+        "canonical": "#83968C",
+        "tonalRamp": ["#101A15", "#213129", "#3A4D43", "#576B60", "#75897E", "#96A79E", "#BCC8C1", "#EBF0ED"]
+      },
+      "live-phosphor": {
+        "role": "primary",
+        "displayName": "Live Phosphor",
+        "canonical": "#67E6A3",
+        "tonalRamp": ["#052218", "#083B28", "#105A3D", "#1D7C55", "#31A873", "#67E6A3", "#A5F3CA", "#E3FBEF"]
+      },
+      "signal-cyan": {
+        "role": "secondary",
+        "displayName": "Signal Cyan",
+        "canonical": "#73B8D4",
+        "tonalRamp": ["#0B2028", "#123746", "#1C5268", "#2B718D", "#4595B5", "#73B8D4", "#ACD7E8", "#E6F4F8"]
+      },
+      "attention-amber": {
+        "role": "tertiary",
+        "displayName": "Attention Amber",
+        "canonical": "#E5B566",
+        "tonalRamp": ["#271A08", "#432D0C", "#654514", "#89601F", "#B58335", "#E5B566", "#F3D79F", "#FBF1DD"]
+      },
+      "fault-coral": {
+        "role": "tertiary",
+        "displayName": "Fault Coral",
+        "canonical": "#E27D76",
+        "tonalRamp": ["#2B1010", "#481B1A", "#6A2926", "#913B37", "#BB554F", "#E27D76", "#F0B0AC", "#F9E5E3"]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Workspace Title",
+        "purpose": "Names the current workspace or inspected artifact."
+      },
+      "body": {
+        "displayName": "Human Voice",
+        "purpose": "Carries explanations and agent messages."
+      },
+      "label": {
+        "displayName": "Machine Voice",
+        "purpose": "Carries state, paths, commands, and telemetry."
+      }
+    },
+    "shadows": [
+      {
+        "name": "floating-command",
+        "value": "0 18px 48px rgba(0, 0, 0, 0.34)",
+        "purpose": "Only for temporary command surfaces and dragged artifacts."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-standard",
+        "value": "180ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Focus, selection, expansion, and state feedback."
+      }
+    ],
+    "breakpoints": [
+      {"name": "compact", "value": "960px"},
+      {"name": "wide", "value": "1280px"}
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single decisive action in a workspace region.",
+      "html": "<button class=\"ds-button-primary\">RUN WEAVE</button>",
+      "css": ".ds-button-primary { background:#67E6A3; color:#0B0F0D; border:1px solid #67E6A3; border-radius:6px; padding:10px 14px; font:600 11px/1.3 ui-monospace, monospace; letter-spacing:.08em; transition:filter 180ms, transform 180ms, box-shadow 180ms; } .ds-button-primary:hover { filter:brightness(1.08); transform:translateY(-1px); } .ds-button-primary:focus-visible { outline:none; box-shadow:0 0 0 2px #0B0F0D, 0 0 0 4px #67E6A3; } .ds-button-primary:active { transform:translateY(0); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "A quiet secondary action that remains easy to locate.",
+      "html": "<button class=\"ds-button-ghost\">INSPECT DIFF</button>",
+      "css": ".ds-button-ghost { background:#111713; color:#D9E4DE; border:1px solid #29362F; border-radius:6px; padding:10px 14px; font:600 11px/1.3 ui-monospace, monospace; letter-spacing:.08em; transition:background 180ms, border-color 180ms; } .ds-button-ghost:hover { background:#17201B; border-color:#83968C; } .ds-button-ghost:focus-visible { outline:2px solid #67E6A3; outline-offset:2px; } .ds-button-ghost:active { background:#0B0F0D; }"
+    },
+    {
+      "name": "Command Field",
+      "kind": "input",
+      "description": "Accepts natural-language direction without pretending to be chat.",
+      "html": "<input class=\"ds-command-field\" value=\"Give the stone shrine a colder silhouette\" aria-label=\"Command\" />",
+      "css": ".ds-command-field { width:360px; box-sizing:border-box; background:#0B0F0D; color:#D9E4DE; border:1px solid #29362F; border-radius:6px; padding:11px 12px; font:400 14px/1.5 system-ui, sans-serif; transition:border-color 180ms, box-shadow 180ms; } .ds-command-field:hover { border-color:#83968C; } .ds-command-field:focus-visible { outline:none; border-color:#67E6A3; box-shadow:0 0 0 2px rgba(103,230,163,.18); }"
+    },
+    {
+      "name": "Live Status",
+      "kind": "chip",
+      "refersTo": "status-live",
+      "description": "Signals genuine active execution with text and a semantic mark.",
+      "html": "<span class=\"ds-status-live\"><span aria-hidden=\"true\">●</span> WEAVING</span>",
+      "css": ".ds-status-live { display:inline-flex; align-items:center; gap:6px; background:#17201B; color:#67E6A3; border:1px solid #29362F; border-radius:999px; padding:5px 9px; font:600 11px/1.3 ui-monospace, monospace; letter-spacing:.08em; }"
+    },
+    {
+      "name": "Workbench Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "A persistent structural region, never a floating decorative card.",
+      "html": "<section class=\"ds-workbench\"><small>WORLD MEMORY</small><strong>Ancient coastal observatory</strong><p>12 durable constraints shared with every agent.</p></section>",
+      "css": ".ds-workbench { width:300px; background:#111713; color:#D9E4DE; border:1px solid #29362F; border-radius:10px; padding:18px; font:400 14px/1.5 system-ui, sans-serif; } .ds-workbench small { display:block; margin-bottom:12px; color:#83968C; font:600 11px/1.3 ui-monospace, monospace; letter-spacing:.08em; } .ds-workbench strong { display:block; margin-bottom:6px; font-size:16px; } .ds-workbench p { margin:0; color:#83968C; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Living Workbench",
+    "overview": "Hexloom is a low-glare instrument for a solo creator working on a laptop at night, moving between agent streams while a collaborator watches the system work. It feels like a beautifully maintained electronics bench: dense with meaningful signals, calm at rest, and visibly alive only when real work is happening.",
+    "keyCharacteristics": [
+      "Dense but immediately scannable.",
+      "Dark and low-glare, never black and fluorescent.",
+      "Asymmetric workspace composition with stable navigation.",
+      "Monospace reserved for machines, state, paths, and commands.",
+      "Visual energy produced by live, inspectable work."
+    ],
+    "rules": [
+      {"name": "The Live Wire Rule", "body": "Live Phosphor occupies no more than ten percent of a screen; its rarity makes active work unmistakable.", "section": "colors"},
+      {"name": "The Signal Pair Rule", "body": "Status color is always paired with an icon, label, or explicit state word.", "section": "colors"},
+      {"name": "The Two Voices Rule", "body": "Human guidance uses sans; machine identity, state, paths, commands, and telemetry use mono.", "section": "typography"},
+      {"name": "The Bench Rule", "body": "Persistent surfaces never float. If every panel casts a shadow, the hierarchy is wrong.", "section": "elevation"}
+    ],
+    "dos": [
+      "Do reserve Live Phosphor for active work, focus, success, and primary actions.",
+      "Do connect every agent event to its originating intent and resulting artifact.",
+      "Do use asymmetric regions to establish priority while keeping navigation positions stable.",
+      "Do provide reduced-motion behavior and non-color state labels.",
+      "Do let genuine builds, tests, diffs, and generated previews create the spectacle."
+    ],
+    "donts": [
+      "Don't create generic neon cyberpunk dashboards or use fluorescent color as decoration.",
+      "Don't build fake walls of terminal noise or Matrix rain.",
+      "Don't imitate crypto-trading interfaces.",
+      "Don't use glassmorphism.",
+      "Don't arrange the workspace as identical SaaS card grids.",
+      "Don't add decorative AI animations that imply activity without explaining it.",
+      "Don't make Hexloom resemble a movie prop, a reskinned chat application, or an admin dashboard with green text.",
+      "Don't use colored side stripes, gradient text, or nested cards as visual shortcuts."
+    ]
+  }
+}
