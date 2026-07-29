@@ -55,6 +55,7 @@ ctest --preset desktop-debug
 ./build/desktop-debug/apps/cli/hexloom agent-run \
   antigravity read . "Summarize the project architecture"
 godot --path godot/material-lab
+godot --path godot/studio
 ```
 
 The desktop preset builds a deliberately trimmed `godot-cpp` API profile, so
@@ -80,6 +81,11 @@ Material Lab can load these raw maps into a Godot `StandardMaterial3D`. The
 automated Godot smoke test generates a temporary artifact through the real CLI,
 loads it through the native bridge, applies it to the preview sphere, and
 verifies the expected texture-loading signal.
+
+Hexloom Studio is the first interactive shell for directing that work. Its
+Godot project presents the world loom, specialized agent crew, live execution
+stream, durable project memory, artifact context, and a project-aware command
+field in one operator-focused workspace.
 
 ## Repository layout
 

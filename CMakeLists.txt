@@ -81,6 +81,17 @@ if(HEXLOOM_BUILD_TESTS)
                     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/run-godot-smoke-test.cmake
             )
             set_tests_properties(hexloom_godot_smoke PROPERTIES TIMEOUT 15)
+
+            add_test(
+                NAME hexloom_studio_smoke
+                COMMAND
+                    ${CMAKE_COMMAND}
+                    -DHEXLOOM_GODOT=${HEXLOOM_GODOT_EXECUTABLE}
+                    -DHEXLOOM_STUDIO_PROJECT=${CMAKE_CURRENT_SOURCE_DIR}/godot/studio
+                    -P
+                    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/run-studio-smoke-test.cmake
+            )
+            set_tests_properties(hexloom_studio_smoke PROPERTIES TIMEOUT 15)
         endif()
     endif()
 endif()
