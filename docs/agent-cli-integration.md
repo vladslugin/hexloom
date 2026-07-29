@@ -82,6 +82,18 @@ enforces timeouts. Windows has the same public interface; its native backend is
 the next platform task. Event normalization and asynchronous UI ownership come
 after that backend.
 
+## Normalized event stream
+
+Provider JSONL is decoded incrementally because operating-system pipe chunks do
+not necessarily align with JSON lines. Codex, Claude, and Antigravity events are
+mapped to the same event vocabulary:
+
+`session_started`, `progress`, `message`, `tool_started`, `tool_completed`,
+`completed`, `failed`, and `protocol_error`.
+
+Raw JSON is retained for diagnostics. A one MiB line limit prevents a malformed
+or hostile provider stream from growing the decoder buffer without bounds.
+
 ## Primary references
 
 - [Codex non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode)

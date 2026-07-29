@@ -1,5 +1,6 @@
 add_library(hexloom_agents STATIC
     src/agent_cli.cpp
+    src/agent_event.cpp
 )
 
 if(UNIX)
@@ -16,6 +17,7 @@ target_include_directories(hexloom_agents
 )
 
 target_compile_features(hexloom_agents PUBLIC cxx_std_20)
+target_link_libraries(hexloom_agents PUBLIC yaml-cpp::yaml-cpp)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(
