@@ -12,6 +12,7 @@ enum class AgentProvider {
     codex,
     claude,
     gemini,
+    antigravity,
 };
 
 enum class AgentAccess {

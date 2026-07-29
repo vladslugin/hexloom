@@ -18,11 +18,13 @@ Agent process supervisor
         |
         +---- Gemini adapter --- `gemini -p --output-format stream-json`
         |
+        +---- Antigravity ------ `agy --print --output-format stream-json`
+        |
         +---- ACP adapter ------ JSON-RPC over stdio (planned)
 ```
 
-`AgentLaunchPlan` is the first provider-neutral boundary for Codex, Claude, and
-Gemini. It produces an
+`AgentLaunchPlan` is the first provider-neutral boundary for Codex, Claude,
+Gemini, and Antigravity. It produces an
 executable and an argv array, never a shell command string. This prevents prompt
 text from being interpreted as shell syntax. Read-only access is the default;
 workspace writes must be explicitly selected by the orchestrator and visible in
@@ -59,6 +61,7 @@ to the operating system:
 hexloom agent-plan codex read "Review the material specification"
 hexloom agent-plan claude write "Implement the selected mechanic"
 hexloom agent-plan gemini read "Review the material specification"
+hexloom agent-plan antigravity read "Review the material specification"
 hexloom agent-run codex read . "Review the material specification"
 ```
 
@@ -66,6 +69,11 @@ hexloom agent-run codex read . "Review the material specification"
 JSONL to stdout and diagnostics to stderr, preserves the CLI exit code, and
 applies a ten-minute safety timeout. One-shot jobs receive a closed standard
 input so provider CLIs cannot accidentally wait for terminal input.
+
+For Google consumer accounts, Antigravity is the supported free provider.
+Google disabled `Login with Google` for consumer Gemini CLI accounts on
+2026-06-18. The Gemini adapter remains available for API-key, Standard, and
+Enterprise configurations.
 
 The first process-supervisor layer launches argv directly on macOS/Linux,
 captures and streams stdout and stderr separately, preserves exit status,
@@ -80,4 +88,6 @@ after that backend.
 - [Codex App Server](https://learn.chatgpt.com/docs/app-server)
 - [Claude Code CLI reference](https://code.claude.com/docs/en/cli-usage)
 - [Gemini CLI headless mode](https://google-gemini.github.io/gemini-cli/docs/cli/headless.html)
+- [Google consumer migration notice](https://developers.google.com/gemini-code-assist/docs/deprecations/code-assist-individuals)
+- [Antigravity CLI reference](https://antigravity.google/docs/cli/reference)
 - [Agent Client Protocol introduction](https://agentclientprotocol.com/get-started/introduction)

@@ -87,6 +87,33 @@ int main(int argc, char** argv) {
         "Gemini provider should parse"
     );
 
+    const auto antigravity = hexloom::agents::make_cli_launch_plan(
+        AgentProvider::antigravity,
+        AgentAccess::workspace_write,
+        "implement the selected task"
+    );
+    check(
+        antigravity.executable == "agy",
+        "Antigravity executable should be stable"
+    );
+    check(
+        antigravity.arguments[3] == "stream-json",
+        "Antigravity should emit streaming JSON"
+    );
+    check(
+        antigravity.arguments[5] == "accept-edits",
+        "Antigravity write access should use accept-edits"
+    );
+    check(
+        antigravity.arguments.back() == "--sandbox",
+        "Antigravity should run tools in its sandbox"
+    );
+    check(
+        hexloom::agents::parse_agent_provider("antigravity") ==
+            AgentProvider::antigravity,
+        "Antigravity provider should parse"
+    );
+
     bool empty_prompt_rejected = false;
     try {
         static_cast<void>(hexloom::agents::make_cli_launch_plan(

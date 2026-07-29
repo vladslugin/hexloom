@@ -7,8 +7,8 @@ design mechanics, generate C++ code and assets, assemble Godot projects, run
 tests, and build games for desktop and mobile platforms.
 
 Coding agents are designed as replaceable local providers. A user-installed
-Codex, Claude Code, or Gemini CLI can reuse its existing account login, so
-Hexloom does
+Codex, Claude Code, Gemini CLI, or Antigravity CLI can reuse its existing
+account login, so Hexloom does
 not require an API key or handle provider credentials. The C++ agent layer
 builds safe structured launch plans and has a macOS/Linux process supervisor
 with separated streaming output, cancellation, timeouts, and child-process
@@ -53,7 +53,7 @@ ctest --preset desktop-debug
 ./build/desktop-debug/apps/cli/hexloom agent-plan \
   codex read "Review the material specification"
 ./build/desktop-debug/apps/cli/hexloom agent-run \
-  gemini read . "Summarize the project architecture"
+  antigravity read . "Summarize the project architecture"
 godot --path godot/material-lab
 ```
 
