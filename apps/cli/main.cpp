@@ -1,3 +1,4 @@
+#include "hexloom/agents/agent_cli.hpp"
 #include "hexloom/core/material_spec_loader.hpp"
 #include "hexloom/generation/texture_generator.hpp"
 
@@ -5,6 +6,8 @@
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
+#include <stdexcept>
+#include <string>
 #include <string_view>
 
 namespace {
@@ -13,7 +16,8 @@ void print_usage() {
     std::cerr
         << "Usage:\n"
         << "  hexloom validate <game.yaml>\n"
-        << "  hexloom generate-textures <game.yaml> <output-dir> [seed]\n";
+        << "  hexloom generate-textures <game.yaml> <output-dir> [seed]\n"
+        << "  hexloom agent-plan <codex|claude> <read|write> <prompt>\n";
 }
 
 void print_specification_issues(
@@ -95,6 +99,42 @@ int generate_command(
     return 0;
 }
 
+int agent_plan_command(
+    std::string_view provider_name,
+    std::string_view access_name,
+    std::string prompt
+) {
+    const auto provider =
+        hexloom::agents::parse_agent_provider(provider_name);
+    if (!provider.has_value()) {
+        std::cerr << "Agent provider must be 'codex' or 'claude'.\n";
+        return 2;
+    }
+
+    hexloom::agents::AgentAccess access;
+    if (access_name == "read") {
+        access = hexloom::agents::AgentAccess::read_only;
+    } else if (access_name == "write") {
+        access = hexloom::agents::AgentAccess::workspace_write;
+    } else {
+        std::cerr << "Agent access must be 'read' or 'write'.\n";
+        return 2;
+    }
+
+    try {
+        const auto plan = hexloom::agents::make_cli_launch_plan(
+            *provider,
+            access,
+            std::move(prompt)
+        );
+        std::cout << hexloom::agents::format_launch_plan(plan);
+        return 0;
+    } catch (const std::invalid_argument& error) {
+        std::cerr << error.what() << '\n';
+        return 2;
+    }
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -110,6 +150,10 @@ int main(int argc, char** argv) {
             return 2;
         }
         return generate_command(argv[2], argv[3], seed);
+    }
+
+    if (argc == 5 && std::string_view(argv[1]) == "agent-plan") {
+        return agent_plan_command(argv[2], argv[3], argv[4]);
     }
 
     print_usage();

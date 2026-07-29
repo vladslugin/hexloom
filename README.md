@@ -6,6 +6,12 @@ Hexloom is an AI-first game creation studio. Specialized agents will
 design mechanics, generate C++ code and assets, assemble Godot projects, run
 tests, and build games for desktop and mobile platforms.
 
+Coding agents are designed as replaceable local providers. A user-installed
+Codex or Claude Code CLI can reuse its existing account login, so Hexloom does
+not require an API key or handle provider credentials. The first C++ adapter
+builds safe structured launch plans; streaming process execution is the next
+milestone.
+
 Every change is checked on Linux against the C++ test suite, the CLI, and a
 real headless Godot 4.7.1 process loading the native GDExtension.
 
@@ -42,6 +48,8 @@ ctest --preset desktop-debug
   games/material-lab/game.yaml \
   games/material-lab/generated/stone \
   42
+./build/desktop-debug/apps/cli/hexloom agent-plan \
+  codex read "Review the material specification"
 godot --path godot/material-lab
 ```
 

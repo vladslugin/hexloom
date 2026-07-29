@@ -8,6 +8,8 @@ Game specification
         v
 Agent orchestrator ----> Studio memory
         |
+        +----> Local agent CLI adapters (Codex / Claude / ACP)
+        |
         v
 Engine-independent C++ core
         |
@@ -23,6 +25,8 @@ Engine-independent C++ core
 3. Generated assets retain their prompt, seed, model, and validation report.
 4. Godot is the first runtime adapter, not the source of game rules.
 5. Every generated artifact must be reproducible or explicitly marked manual.
+6. Agent prompts are passed as argv values, never through a shell command.
+7. Provider credentials remain owned by the installed provider CLI.
 
 ## First artifact contract
 
