@@ -11,6 +11,14 @@
 .godot/
 /godot/material-lab/bin/*
 !/godot/material-lab/bin/.gitkeep
+/godot/studio/bin/*
+!/godot/studio/bin/.gitkeep
+!/godot/material-lab/.godot/
+/godot/material-lab/.godot/*
+!/godot/material-lab/.godot/extension_list.cfg
+!/godot/studio/.godot/
+/godot/studio/.godot/*
+!/godot/studio/.godot/extension_list.cfg
 
 # Generated assets are reproducible and should not be committed by default.
 /games/*/generated/

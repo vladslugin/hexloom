@@ -43,6 +43,44 @@ var artifact_material_id := ""
 var artifact_provider := ""
 var artifact_resolution := 0
 var selected_agent := 1
+var agent_bridge: RefCounted
+var agent_running := false
+var agent_progress := 0.0
+var agent_status := "Ready for your direction"
+var activity_events: Array[Dictionary] = [
+	{
+		"mark": "AR",
+		"color": CYAN,
+		"role": "Artisan",
+		"text": "Creating a low-poly blockout with ceremonial proportions",
+		"time": "NOW",
+		"live": true
+	},
+	{
+		"mark": "OR",
+		"color": LIVE,
+		"role": "Orchestrator",
+		"text": "Prepared mesh, material, lighting, and validation steps",
+		"time": "12s",
+		"live": false
+	},
+	{
+		"mark": "↗",
+		"color": CYAN,
+		"role": "Context",
+		"text": "Attached 8 style rules and 3 reference artifacts",
+		"time": "14s",
+		"live": false
+	},
+	{
+		"mark": "✓",
+		"color": LIVE,
+		"role": "Sentinel",
+		"text": "Baseline scene passed 18 checks before modification",
+		"time": "19s",
+		"live": false
+	}
+]
 var pulse := 0.0
 var toast_text := ""
 var toast_until := 0
@@ -54,6 +92,7 @@ func _ready() -> void:
 	set_process(true)
 	_create_preview()
 	_create_controls()
+	_create_agent_bridge()
 	resized.connect(_layout_controls)
 	_layout_controls()
 	print("HEXLOOM_STUDIO_READY")
@@ -68,7 +107,15 @@ func _process(delta: float) -> void:
 	if toast_until > 0 and Time.get_ticks_msec() > toast_until:
 		toast_until = 0
 		toast_text = ""
+	_poll_agent()
 	queue_redraw()
+
+
+func _create_agent_bridge() -> void:
+	if not ClassDB.class_exists("HexloomAgentBridge"):
+		push_warning("HexloomAgentBridge is unavailable")
+		return
+	agent_bridge = ClassDB.instantiate("HexloomAgentBridge")
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -733,16 +780,169 @@ func _panel(
 func _run_weave(text: String) -> void:
 	if text.strip_edges().is_empty():
 		toast_text = "Describe a change and Hexloom will prepare the plan."
-	else:
-		toast_text = "Your direction is ready for planning."
+		toast_until = Time.get_ticks_msec() + 2600
+		queue_redraw()
+		return
+	if agent_bridge == null:
+		toast_text = "The native agent bridge is not available in this build."
+		toast_until = Time.get_ticks_msec() + 3200
+		queue_redraw()
+		return
+	if agent_running:
+		toast_text = "Antigravity is already preparing a plan."
+		toast_until = Time.get_ticks_msec() + 2600
+		queue_redraw()
+		return
+
+	var project_root := ProjectSettings.globalize_path("res://../..").simplify_path()
+	var planning_prompt := (
+		"You are Hexloom's game design orchestrator. Create a concise, "
+		+ "implementation-ready plan for this direction:\n\n"
+		+ text.strip_edges()
+		+ "\n\nDo not edit files. Return ordered steps, affected gameplay systems, "
+		+ "artifacts to produce, risks, and validation checks. Respect the existing "
+		+ "project style and mobile constraints."
+	)
+	var result: Dictionary = agent_bridge.call(
+		"start",
+		"antigravity",
+		"read_only",
+		project_root,
+		planning_prompt
+	)
+	if not bool(result.get("started", false)):
+		toast_text = str(result.get("error", "Could not start Antigravity."))
+		toast_until = Time.get_ticks_msec() + 4200
+		queue_redraw()
+		return
+
+	agent_running = true
+	agent_progress = 0.08
+	agent_status = "Opening a planning session"
+	run_button.disabled = true
+	run_button.text = "PLANNING…"
+	pause_button.text = "■  Stop"
+	activity_events.clear()
+	_add_activity_event(
+		"OR",
+		LIVE,
+		"Orchestrator",
+		"Direction received; opening Antigravity in read-only mode",
+		true
+	)
+	toast_text = "Antigravity is preparing the build plan."
 	toast_until = Time.get_ticks_msec() + 2600
 	queue_redraw()
 
 
 func _pause_weave() -> void:
-	toast_text = "Hexloom will pause at the next safe checkpoint."
+	if agent_bridge != null and agent_running:
+		agent_bridge.call("cancel")
+		agent_status = "Stopping at a safe checkpoint"
+		toast_text = "Stopping Antigravity safely…"
+	else:
+		toast_text = "There is no active agent run."
 	toast_until = Time.get_ticks_msec() + 2600
 	queue_redraw()
+
+
+func _poll_agent() -> void:
+	if agent_bridge == null:
+		return
+	for event in agent_bridge.call("poll_events"):
+		_handle_agent_event(event)
+	var still_running := bool(agent_bridge.call("is_running"))
+	if agent_running and not still_running:
+		agent_running = false
+		run_button.disabled = false
+		run_button.text = "CREATE PLAN  ↵"
+		pause_button.text = "Ⅱ  Pause"
+
+
+func _handle_agent_event(event: Dictionary) -> void:
+	var event_type := str(event.get("type", "progress"))
+	var event_text := _clean_agent_text(str(event.get("text", "")))
+	match event_type:
+		"session_started":
+			agent_progress = maxf(agent_progress, 0.18)
+			agent_status = "Planning session connected"
+			_add_activity_event(
+				"AG", CYAN, "Antigravity", agent_status, true
+			)
+		"message":
+			agent_progress = minf(0.88, agent_progress + 0.12)
+			agent_status = "Shaping the implementation plan"
+			if not event_text.is_empty():
+				_add_activity_event(
+					"AG", CYAN, "Antigravity", event_text, true
+				)
+		"tool_started":
+			agent_progress = minf(0.82, agent_progress + 0.08)
+			agent_status = "Inspecting project context"
+			_add_activity_event(
+				"↗",
+				AMBER,
+				"Project tool",
+				event_text if not event_text.is_empty() else "Reading context",
+				true
+			)
+		"tool_completed":
+			agent_progress = minf(0.9, agent_progress + 0.08)
+			agent_status = "Context inspection complete"
+		"completed":
+			agent_progress = 1.0
+			agent_status = "Plan ready to review"
+			_add_activity_event(
+				"✓",
+				SAGE,
+				"Orchestrator",
+				event_text if not event_text.is_empty() else agent_status,
+				false
+			)
+			toast_text = "The implementation plan is ready."
+			toast_until = Time.get_ticks_msec() + 3200
+		"failed", "protocol_error":
+			agent_status = "Planning stopped"
+			_add_activity_event(
+				"!",
+				CORAL,
+				"Antigravity",
+				event_text if not event_text.is_empty() else agent_status,
+				false
+			)
+			toast_text = event_text if not event_text.is_empty() else agent_status
+			toast_until = Time.get_ticks_msec() + 4200
+		_:
+			if not event_text.is_empty():
+				agent_status = event_text
+
+
+func _add_activity_event(
+	mark: String,
+	color: Color,
+	role: String,
+	text: String,
+	is_live: bool
+) -> void:
+	for item in activity_events:
+		item["live"] = false
+	activity_events.push_front({
+		"mark": mark,
+		"color": color,
+		"role": role,
+		"text": _clean_agent_text(text),
+		"time": "NOW",
+		"live": is_live
+	})
+	if activity_events.size() > 4:
+		activity_events.resize(4)
+
+
+func _clean_agent_text(value: String) -> String:
+	var compact := " ".join(value.replace("\r", "\n").split("\n", false))
+	if compact.length() > 96:
+		return compact.left(93) + "…"
+	return compact
 
 
 func _handle_automation_args() -> void:
@@ -794,6 +994,19 @@ func _run_self_checks() -> bool:
 		return false
 	if preview_container == null or preview_viewport == null:
 		push_error("Studio preview was not created")
+		return false
+	if agent_bridge == null:
+		push_error("Studio native agent bridge was not created")
+		return false
+	var invalid_agent_start: Dictionary = agent_bridge.call(
+		"start",
+		"not-a-provider",
+		"read_only",
+		ProjectSettings.globalize_path("res://../.."),
+		"test"
+	)
+	if bool(invalid_agent_start.get("started", true)):
+		push_error("Studio agent bridge accepted an unknown provider")
 		return false
 	if (
 		preview_object_button == null
@@ -1029,7 +1242,7 @@ func _draw_work_area(inspector_x: float, command_y: float) -> void:
 	)
 	_text("Activity", Vector2(x0 + 24, activity_y + 30), 11, MUTED)
 	_text(
-		"5 events",
+		"%d events" % activity_events.size(),
 		Vector2(inspector_x - 70, activity_y + 30),
 		10,
 		MUTED,
@@ -1038,42 +1251,22 @@ func _draw_work_area(inspector_x: float, command_y: float) -> void:
 
 	var stream_y := activity_y + 52.0
 	var stream_width := width - 48.0
-	_event_row(
-		Rect2(x0 + 24, stream_y, stream_width, 50),
-		"AR",
-		CYAN,
-		"Artisan",
-		"Creating a low-poly blockout with ceremonial proportions",
-		"NOW",
-		true
-	)
-	_event_row(
-		Rect2(x0 + 24, stream_y + 56, stream_width, 46),
-		"OR",
-		LIVE,
-		"Orchestrator",
-		"Prepared mesh, material, lighting, and validation steps",
-		"12s",
-		false
-	)
-	_event_row(
-		Rect2(x0 + 24, stream_y + 108, stream_width, 46),
-		"↗",
-		CYAN,
-		"Context",
-		"Attached 8 style rules and 3 reference artifacts",
-		"14s",
-		false
-	)
-	_event_row(
-		Rect2(x0 + 24, stream_y + 160, stream_width, 46),
-		"✓",
-		LIVE,
-		"Sentinel",
-		"Baseline scene passed 18 checks before modification",
-		"19s",
-		false
-	)
+	for event_index in activity_events.size():
+		var event := activity_events[event_index]
+		_event_row(
+			Rect2(
+				x0 + 24,
+				stream_y + event_index * 52.0,
+				stream_width,
+				50 if event_index == 0 else 46
+			),
+			str(event["mark"]),
+			event["color"],
+			str(event["role"]),
+			str(event["text"]),
+			str(event["time"]),
+			bool(event["live"])
+		)
 
 
 func _compact_step(
@@ -1099,16 +1292,27 @@ func _compact_step(
 func _draw_weave_trace(rect: Rect2) -> void:
 	_panel(rect, Color("#24221D"), BORDER_SOFT, 7)
 	_text("Generation progress", rect.position + Vector2(13, 20), 10, MUTED)
-	_text("42%", rect.position + Vector2(13, 39), 14, TEXT, true)
+	var shown_progress := agent_progress if agent_running or agent_progress > 0.0 else 0.42
+	_text(
+		"%d%%" % roundi(shown_progress * 100.0),
+		rect.position + Vector2(13, 39),
+		14,
+		TEXT,
+		true
+	)
 
 	var track_x := rect.position.x + 67.0
 	var track_y := rect.position.y + 28.0
 	var track_width := rect.size.x - 304.0
 	draw_rect(Rect2(track_x, track_y, track_width, 3), BORDER_SOFT, true)
-	draw_rect(Rect2(track_x, track_y, track_width * 0.42, 3), LIVE, true)
+	draw_rect(
+		Rect2(track_x, track_y, track_width * shown_progress, 3),
+		LIVE,
+		true
+	)
 	for step in 6:
 		var step_x := track_x + track_width * float(step) / 5.0
-		var completed := step <= 2
+		var completed := float(step) / 5.0 <= shown_progress
 		draw_circle(
 			Vector2(step_x, track_y + 1.5),
 			3.0 if completed else 2.0,
@@ -1118,7 +1322,7 @@ func _draw_weave_trace(rect: Rect2) -> void:
 	var detail_x := rect.end.x - 210.0
 	_text("03 / 06", Vector2(detail_x, rect.position.y + 21), 9, CYAN, true)
 	_text(
-		"mesh draft in progress",
+		agent_status if agent_running or agent_progress > 0.0 else "mesh draft in progress",
 		Vector2(detail_x, rect.position.y + 39),
 		10,
 		MUTED

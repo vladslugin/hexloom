@@ -1,3 +1,4 @@
+#include "hexloom/godot/hexloom_agent_bridge.hpp"
 #include "hexloom/godot/hexloom_material_bridge.hpp"
 
 #include <godot_cpp/core/class_db.hpp>
@@ -15,6 +16,9 @@ void initialize_hexloom_module(
 
     godot::ClassDB::register_class<
         hexloom::godot_adapter::HexloomMaterialBridge
+    >();
+    godot::ClassDB::register_class<
+        hexloom::godot_adapter::HexloomAgentBridge
     >();
 }
 

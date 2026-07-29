@@ -89,6 +89,13 @@ context, and a project-aware command field in one creator-focused workspace.
 The preview supports mouse orbit, wheel zoom, keyboard camera controls, camera
 reset, and object/material inspection modes.
 
+The Studio command field is connected to the native `HexloomAgentBridge`.
+`Create Plan` starts the authenticated Antigravity CLI in read-only planning
+mode on a background thread, then streams normalized session, message, tool,
+completion, and failure events into the activity view without blocking Godot.
+`Stop` cancels the complete agent process group. Hexloom never reads or stores
+the provider's login credentials.
+
 To inspect a generated texture artifact in Studio:
 
 ```sh

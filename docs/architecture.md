@@ -38,6 +38,13 @@ validated headlessly, rendered in Godot, or processed by a different adapter.
 dictionaries into the same engine-independent contract, runs validation in the
 C++ core, and returns a structured result to the Material Lab scene.
 
+`HexloomAgentBridge` keeps provider processes outside Godot's main thread. It
+accepts only structured provider, access, working-directory, and prompt values;
+launches an argv vector without a shell; and exposes normalized events through
+a polled, mutex-protected queue. Godot objects never cross the worker-thread
+boundary. Cancellation is forwarded to the process supervisor, which
+terminates the complete child process group.
+
 ## Texture generation providers
 
 Texture generation is represented by a provider-independent
