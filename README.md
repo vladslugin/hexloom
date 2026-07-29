@@ -56,10 +56,13 @@ The art style is also structured and validated. The first profile is
 `hexloom_stylized_lowpoly`: low-poly geometry, exaggerated silhouettes, soft
 bevels, stylized PBR surfaces, atmospheric lighting, and a limited palette.
 
-The first Texture Generator provider is deterministic and offline. It writes
-raw RGBA8 texture maps plus an `artifact.yaml` containing the provider, seed,
-dimensions, filenames, and FNV-1a checksums. Output is committed atomically and
-existing directories are never overwritten.
+The first Texture Generator provider is deterministic and offline. Before
+generation, a provider-independent prompt compiler turns the material request
+and art-style profile into positive and negative prompts. Each artifact stores
+that input in `prompt.yaml`, while `artifact.yaml` records the provider, style,
+seed, dimensions, filenames, and FNV-1a checksums. The deterministic provider
+also derives its albedo from the declared palette. Output is committed
+atomically and existing directories are never overwritten.
 
 Material Lab can load these raw maps into a Godot `StandardMaterial3D`. The
 automated Godot smoke test generates a temporary artifact through the real CLI,

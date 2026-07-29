@@ -9,6 +9,8 @@
 #include <string>
 #include <system_error>
 
+int run_texture_prompt_tests();
+
 namespace {
 
 class TemporaryDirectory {
@@ -53,6 +55,22 @@ private:
     };
 }
 
+[[nodiscard]] hexloom::ArtStyleProfile test_style() {
+    return {
+        .id = "test_style",
+        .geometry = "low_poly",
+        .silhouettes = "exaggerated",
+        .edges = "soft_beveled",
+        .texture_style = "stylized_pbr",
+        .lighting = "atmospheric",
+        .realism = 0.25,
+        .base_color = {87, 106, 145},
+        .secondary_color = {38, 49, 71},
+        .accent_color = {73, 214, 255},
+        .forbidden = {"photorealism"},
+    };
+}
+
 }  // namespace
 
 int main() {
@@ -69,6 +87,7 @@ int main() {
 
     const hexloom::generation::TextureGenerationJob first_job{
         .request = test_request(),
+        .style = test_style(),
         .output_directory = temporary.path() / "first",
         .seed = 42,
     };
@@ -77,6 +96,7 @@ int main() {
 
     const hexloom::generation::TextureGenerationJob second_job{
         .request = test_request(),
+        .style = test_style(),
         .output_directory = temporary.path() / "second",
         .seed = 42,
     };
@@ -85,6 +105,7 @@ int main() {
 
     const hexloom::generation::TextureGenerationJob different_seed_job{
         .request = test_request(),
+        .style = test_style(),
         .output_directory = temporary.path() / "different-seed",
         .seed = 43,
     };
@@ -126,12 +147,20 @@ int main() {
             std::filesystem::exists(first_artifact.manifest_path),
             "artifact manifest should exist"
         );
+        check(
+            std::filesystem::exists(first_artifact.prompt_path),
+            "compiled prompt should exist"
+        );
         const YAML::Node manifest =
             YAML::LoadFile(first_artifact.manifest_path.string());
         check(
             manifest["provider"].as<std::string>() ==
                 "hexloom.deterministic.v1",
             "manifest should record provider id"
+        );
+        check(
+            manifest["style_id"].as<std::string>() == "test_style",
+            "manifest should record style id"
         );
         check(
             manifest["maps"].size() == 4,
@@ -163,6 +192,7 @@ int main() {
     invalid_request.id = "../unsafe";
     const auto invalid = generator.generate({
         .request = invalid_request,
+        .style = test_style(),
         .output_directory = temporary.path() / "unsafe",
         .seed = 0,
     });
@@ -172,6 +202,7 @@ int main() {
         "invalid job should not create output"
     );
 
+    failures += run_texture_prompt_tests();
     if (failures == 0) {
         std::cout << "Hexloom generation tests passed.\n";
     }

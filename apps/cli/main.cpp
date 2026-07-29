@@ -70,6 +70,7 @@ int generate_command(
 
     const hexloom::generation::TextureGenerationJob job{
         .request = *loaded.request,
+        .style = *loaded.style,
         .output_directory = output_directory,
         .seed = seed,
     };

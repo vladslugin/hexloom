@@ -1,5 +1,6 @@
 add_executable(hexloom_generation_tests
     deterministic_texture_generator_test.cpp
+    texture_prompt_test.cpp
 )
 
 target_link_libraries(

@@ -40,3 +40,8 @@ Texture generation is represented by a provider-independent
 `TextureGenerationJob`. Providers return a versioned artifact manifest and
 texture maps. The first deterministic provider exists to test reproducibility,
 filesystem safety, and Godot integration before an AI image provider is added.
+
+`compile_texture_prompt` converts the same structured request and art profile
+into provider-neutral positive and negative prompts. Prompts are retained beside
+every artifact so a later AI provider can be audited, reproduced, or replaced
+without changing the game specification.

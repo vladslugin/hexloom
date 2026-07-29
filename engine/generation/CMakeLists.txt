@@ -1,5 +1,6 @@
 add_library(hexloom_generation STATIC
     src/deterministic_texture_generator.cpp
+    src/texture_prompt.cpp
 )
 
 add_library(Hexloom::Generation ALIAS hexloom_generation)

@@ -1,4 +1,5 @@
 #include "hexloom/generation/texture_generator.hpp"
+#include "hexloom/generation/texture_prompt.hpp"
 
 #include <yaml-cpp/yaml.h>
 
@@ -80,6 +81,7 @@ void add_issue(
 
 [[nodiscard]] std::array<std::uint8_t, 4> make_pixel(
     TextureMap map,
+    const ArtStyleProfile& style,
     std::uint32_t x,
     std::uint32_t y,
     std::uint32_t size,
@@ -88,13 +90,28 @@ void add_issue(
     const double pattern = periodic_pattern(x, y, size, seed);
 
     switch (map) {
-        case TextureMap::albedo:
+        case TextureMap::albedo: {
+            const double blend = std::clamp(
+                (pattern + 1.0) * 0.5,
+                0.0,
+                1.0
+            );
+            const auto channel = [blend](
+                std::uint8_t base,
+                std::uint8_t secondary
+            ) {
+                return clamp_byte(
+                    static_cast<double>(secondary) * (1.0 - blend) +
+                    static_cast<double>(base) * blend
+                );
+            };
             return {
-                clamp_byte(87.0 + pattern * 25.0),
-                clamp_byte(105.0 + pattern * 28.0),
-                clamp_byte(142.0 + pattern * 34.0),
+                channel(style.base_color.red, style.secondary_color.red),
+                channel(style.base_color.green, style.secondary_color.green),
+                channel(style.base_color.blue, style.secondary_color.blue),
                 255,
             };
+        }
         case TextureMap::normal: {
             const double next_x =
                 periodic_pattern((x + 1) % size, y, size, seed);
@@ -148,6 +165,7 @@ void add_issue(
 [[nodiscard]] bool write_map(
     const std::filesystem::path& path,
     TextureMap map,
+    const ArtStyleProfile& style,
     std::uint32_t size,
     std::uint64_t seed,
     std::uint64_t& checksum
@@ -164,7 +182,14 @@ void add_issue(
 
     for (std::uint32_t y = 0; y < size; ++y) {
         for (std::uint32_t x = 0; x < size; ++x) {
-            const auto pixel = make_pixel(map, x, y, size, seed);
+            const auto pixel = make_pixel(
+                map,
+                style,
+                x,
+                y,
+                size,
+                seed
+            );
             const auto offset = static_cast<std::size_t>(x) * 4;
             std::copy(pixel.begin(), pixel.end(), row.begin() + offset);
         }
@@ -191,7 +216,10 @@ void add_issue(
     yaml << YAML::Key << "schema_version" << YAML::Value << 1;
     yaml << YAML::Key << "provider" << YAML::Value << artifact.provider;
     yaml << YAML::Key << "material_id" << YAML::Value << artifact.material_id;
+    yaml << YAML::Key << "style_id" << YAML::Value << artifact.style_id;
     yaml << YAML::Key << "seed" << YAML::Value << artifact.seed;
+    yaml << YAML::Key << "prompt" << YAML::Value
+         << artifact.prompt_path.filename().string();
     yaml << YAML::Key << "format" << YAML::Value << "rgba8";
     yaml << YAML::Key << "maps" << YAML::Value << YAML::BeginSeq;
     for (const auto& map : artifact.maps) {
@@ -207,6 +235,22 @@ void add_issue(
         yaml << YAML::EndMap;
     }
     yaml << YAML::EndSeq;
+    yaml << YAML::EndMap;
+
+    std::ofstream output(path);
+    output << yaml.c_str() << '\n';
+    return static_cast<bool>(output);
+}
+
+[[nodiscard]] bool write_prompt(
+    const std::filesystem::path& path,
+    const TexturePrompt& prompt
+) {
+    YAML::Emitter yaml;
+    yaml << YAML::BeginMap;
+    yaml << YAML::Key << "schema_version" << YAML::Value << 1;
+    yaml << YAML::Key << "positive" << YAML::Value << prompt.positive;
+    yaml << YAML::Key << "negative" << YAML::Value << prompt.negative;
     yaml << YAML::EndMap;
 
     std::ofstream output(path);
@@ -234,6 +278,26 @@ TextureGenerationResult DeterministicTextureGenerator::generate(
                 issue.message
             );
         }
+        return result;
+    }
+
+    const auto style_issues = validate(job.style);
+    if (!style_issues.empty()) {
+        for (const auto& issue : style_issues) {
+            add_issue(
+                result,
+                "invalid_style." + issue.field,
+                issue.message
+            );
+        }
+        return result;
+    }
+    if (job.request.style_id != job.style.id) {
+        add_issue(
+            result,
+            "style_mismatch",
+            "Material style id does not match the supplied art profile."
+        );
         return result;
     }
 
@@ -303,10 +367,22 @@ TextureGenerationResult DeterministicTextureGenerator::generate(
     TextureArtifact staging_artifact{
         .provider = provider_id(),
         .material_id = job.request.id,
+        .style_id = job.style.id,
         .seed = job.seed,
         .manifest_path = staging_path / "artifact.yaml",
+        .prompt_path = staging_path / "prompt.yaml",
         .maps = {},
     };
+
+    const auto prompt = compile_texture_prompt(job.request, job.style);
+    if (!write_prompt(staging_artifact.prompt_path, prompt)) {
+        add_issue(
+            result,
+            "prompt_write_failed",
+            "Could not write the compiled texture prompt."
+        );
+        return result;
+    }
 
     for (const auto map : job.request.maps) {
         const auto filename =
@@ -316,6 +392,7 @@ TextureGenerationResult DeterministicTextureGenerator::generate(
         if (!write_map(
                 path,
                 map,
+                job.style,
                 job.request.resolution,
                 job.seed,
                 checksum
@@ -360,6 +437,7 @@ TextureGenerationResult DeterministicTextureGenerator::generate(
 
     TextureArtifact artifact = std::move(staging_artifact);
     artifact.manifest_path = job.output_directory / "artifact.yaml";
+    artifact.prompt_path = job.output_directory / "prompt.yaml";
     for (auto& map : artifact.maps) {
         map.path = job.output_directory / map.path.filename();
     }

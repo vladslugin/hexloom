@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hexloom/core/art_style.hpp"
 #include "hexloom/core/material_request.hpp"
 
 #include <cstdint>
@@ -12,6 +13,7 @@ namespace hexloom::generation {
 
 struct TextureGenerationJob {
     MaterialRequest request;
+    ArtStyleProfile style;
     std::filesystem::path output_directory;
     std::uint64_t seed = 0;
 };
@@ -27,8 +29,10 @@ struct GeneratedTextureMap {
 struct TextureArtifact {
     std::string provider;
     std::string material_id;
+    std::string style_id;
     std::uint64_t seed;
     std::filesystem::path manifest_path;
+    std::filesystem::path prompt_path;
     std::vector<GeneratedTextureMap> maps;
 };
 
