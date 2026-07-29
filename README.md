@@ -97,7 +97,9 @@ completion, and failure events into the activity view without blocking Godot.
 the provider's login credentials. Completed responses open in the Plans
 workspace as a selectable, scrollable document with readable headings and a
 one-click copy action; the event stream remains a concise execution history
-instead of duplicating raw response fragments.
+instead of duplicating raw response fragments. Markdown tables are converted
+into compact labeled sections, long prose is kept to a readable measure, and
+wide layouts show an execution-readiness summary without crowding the plan.
 
 To inspect a generated texture artifact in Studio:
 

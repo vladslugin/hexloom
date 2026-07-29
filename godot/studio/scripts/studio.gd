@@ -220,6 +220,7 @@ func _create_controls() -> void:
 	plan_document.context_menu_enabled = true
 	plan_document.scroll_active = true
 	plan_document.add_theme_font_size_override("normal_font_size", 14)
+	plan_document.add_theme_constant_override("line_separation", 3)
 	plan_document.add_theme_color_override("default_color", TEXT)
 	plan_document.add_theme_color_override("font_selected_color", BG)
 	plan_document.add_theme_color_override(
@@ -844,12 +845,25 @@ func _preview_rect(inspector_x: float) -> Rect2:
 
 
 func _plan_document_rect(inspector_x: float, command_y: float) -> Rect2:
+	var available_width := inspector_x - RAIL_W - 48.0
+	var document_width := 640.0
+	if available_width - document_width - 20.0 < 250.0:
+		document_width = available_width
 	return Rect2(
 		RAIL_W + 24.0,
 		143.0,
-		inspector_x - RAIL_W - 48.0,
+		minf(document_width, available_width),
 		command_y - 167.0
 	)
+
+
+func _plan_scope_rect(inspector_x: float, command_y: float) -> Rect2:
+	var document_rect := _plan_document_rect(inspector_x, command_y)
+	var scope_x := document_rect.end.x + 20.0
+	var scope_width := inspector_x - scope_x - 24.0
+	if scope_width < 250.0:
+		return Rect2()
+	return Rect2(scope_x, 143.0, scope_width, 278.0)
 
 
 func _style(
@@ -1095,10 +1109,26 @@ func _set_workspace_view(view_name: String) -> void:
 
 func _render_plan_document(plan_text: String) -> void:
 	plan_document.clear()
-	for raw_line in plan_text.replace("\r", "").split("\n"):
-		var line := str(raw_line).strip_edges()
+	var lines := plan_text.replace("\r", "").split("\n")
+	var line_index := 0
+	while line_index < lines.size():
+		var line := str(lines[line_index]).strip_edges()
 		if line.is_empty():
 			plan_document.append_text("\n")
+			line_index += 1
+			continue
+		if _is_markdown_rule(line):
+			plan_document.append_text("\n")
+			line_index += 1
+			continue
+		if (
+			_is_markdown_table_row(line)
+			and line_index + 1 < lines.size()
+			and _is_markdown_table_separator(
+				str(lines[line_index + 1]).strip_edges()
+			)
+		):
+			line_index = _render_markdown_table(lines, line_index)
 			continue
 		var heading_level := 0
 		while heading_level < line.length() and line[heading_level] == "#":
@@ -1111,10 +1141,76 @@ func _render_plan_document(plan_text: String) -> void:
 			plan_document.pop()
 			plan_document.pop()
 			plan_document.append_text("\n")
+			line_index += 1
 			continue
 		if line.begins_with("- ") or line.begins_with("* "):
 			line = "• " + line.substr(2).strip_edges()
 		plan_document.append_text(_strip_markdown(line) + "\n")
+		line_index += 1
+
+
+func _render_markdown_table(lines: PackedStringArray, start: int) -> int:
+	var headers := _markdown_table_cells(str(lines[start]))
+	var row_index := start + 2
+	while row_index < lines.size():
+		var row_line := str(lines[row_index]).strip_edges()
+		if not _is_markdown_table_row(row_line):
+			break
+		var cells := _markdown_table_cells(row_line)
+		if cells.is_empty():
+			break
+		plan_document.push_bold()
+		plan_document.append_text(_strip_markdown(str(cells[0])) + "\n")
+		plan_document.pop()
+		for cell_index in range(1, mini(headers.size(), cells.size())):
+			plan_document.push_color(MUTED)
+			plan_document.append_text(
+				_strip_markdown(str(headers[cell_index])) + ": "
+			)
+			plan_document.pop()
+			plan_document.append_text(
+				_strip_markdown(str(cells[cell_index])) + "\n"
+			)
+		plan_document.append_text("\n")
+		row_index += 1
+	return row_index
+
+
+func _markdown_table_cells(line: String) -> Array[String]:
+	var cells: Array[String] = []
+	var content := line.strip_edges().trim_prefix("|").trim_suffix("|")
+	for cell in content.split("|"):
+		cells.append(str(cell).strip_edges())
+	return cells
+
+
+func _is_markdown_table_row(line: String) -> bool:
+	var stripped := line.strip_edges()
+	return stripped.begins_with("|") and stripped.ends_with("|")
+
+
+func _is_markdown_table_separator(line: String) -> bool:
+	if not _is_markdown_table_row(line):
+		return false
+	var cells := _markdown_table_cells(line)
+	if cells.is_empty():
+		return false
+	for cell in cells:
+		var normalized := cell.replace(":", "").replace("-", "")
+		if not normalized.strip_edges().is_empty():
+			return false
+	return true
+
+
+func _is_markdown_rule(line: String) -> bool:
+	var compact := line.replace(" ", "")
+	if compact.length() < 3:
+		return false
+	return (
+		compact.replace("-", "").is_empty()
+		or compact.replace("_", "").is_empty()
+		or compact.replace("*", "").is_empty()
+	)
 
 
 func _strip_markdown(value: String) -> String:
@@ -1146,6 +1242,14 @@ func _handle_automation_args() -> void:
 				+ "- Replace the warm roof material with desaturated clay.\n"
 				+ "- Add restrained mist particles around the entrance.\n"
 				+ "- Validate the mobile triangle budget and collision mesh.\n\n"
+				+ "---\n\n"
+				+ "## Affected systems\n\n"
+				+ "| System | Impact | Adaptation |\n"
+				+ "| :-- | :-- | :-- |\n"
+				+ "| Navigation | Sharp corners can snag movement. | "
+				+ "Use a smooth capsule collision boundary. |\n"
+				+ "| Mobile input | Thin spires reduce tap readability. | "
+				+ "Keep larger invisible interaction bounds. |\n\n"
 				+ "## Checks\n"
 				+ "1. Silhouette remains readable at gameplay distance.\n"
 				+ "2. Scene stays below 18k triangles.\n"
@@ -1226,8 +1330,17 @@ func _run_self_checks() -> bool:
 	):
 		push_error("Studio plan review controls were not created")
 		return false
-	latest_plan_text = "# Test plan\n\n- Inspect the artifact."
+	latest_plan_text = (
+		"# Test plan\n\n---\n\n"
+		+ "| System | Result |\n"
+		+ "| :-- | :-- |\n"
+		+ "| Preview | Inspect the artifact. |"
+	)
 	_render_plan_document(latest_plan_text)
+	var parsed_plan := plan_document.get_parsed_text()
+	if parsed_plan.contains("|") or parsed_plan.contains("---"):
+		push_error("Studio plan review exposed raw Markdown table syntax")
+		return false
 	_set_workspace_view("plan")
 	if (
 		not plan_document.visible
@@ -1529,6 +1642,72 @@ func _draw_plan_review(inspector_x: float, command_y: float) -> void:
 		10,
 		DIM
 	)
+	var scope_rect := _plan_scope_rect(inspector_x, command_y)
+	if scope_rect.size.x > 0.0:
+		_draw_execution_readiness(scope_rect)
+
+
+func _draw_execution_readiness(rect: Rect2) -> void:
+	_panel(rect, Color("#24221D"), BORDER_SOFT, 9)
+	var x := rect.position.x + 18.0
+	_label("Execution readiness", Vector2(x, rect.position.y + 27.0))
+	_text(
+		"Nothing has changed yet.",
+		Vector2(x, rect.position.y + 54.0),
+		14,
+		TEXT
+	)
+	_text(
+		"The planning pass was read-only.",
+		Vector2(x, rect.position.y + 74.0),
+		10,
+		MUTED
+	)
+	_draw_section_line(rect.position.x, rect.position.y + 94.0, rect.size.x)
+	_readiness_row(
+		x,
+		rect.position.y + 122.0,
+		"✓",
+		"Plan complete",
+		"READY",
+		SAGE
+	)
+	_readiness_row(
+		x,
+		rect.position.y + 163.0,
+		"0",
+		"Files changed",
+		"SAFE",
+		CYAN
+	)
+	_readiness_row(
+		x,
+		rect.position.y + 204.0,
+		"◇",
+		"Workspace scope",
+		"REVIEW NEXT",
+		AMBER
+	)
+	_text(
+		"Next, choose what Engineer may edit.",
+		Vector2(x, rect.position.y + 250.0),
+		10,
+		MUTED
+	)
+
+
+func _readiness_row(
+	x: float,
+	y: float,
+	mark: String,
+	title: String,
+	state: String,
+	accent: Color
+) -> void:
+	draw_circle(Vector2(x + 10.0, y - 4.0), 10.0, Color(accent, 0.12))
+	_text(mark, Vector2(x + 5.0, y), 9, accent, true)
+	_text(title, Vector2(x + 30.0, y), 11, TEXT)
+	_text(state, Vector2(x + 30.0, y + 15.0), 8, accent, true)
 
 
 func _compact_step(
