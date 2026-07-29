@@ -24,6 +24,9 @@ var mono: Font
 var command_field: LineEdit
 var run_button: Button
 var pause_button: Button
+var plan_document: RichTextLabel
+var plan_back_button: Button
+var plan_copy_button: Button
 var preview_container: SubViewportContainer
 var preview_viewport: SubViewport
 var preview_camera: Camera3D
@@ -43,6 +46,8 @@ var artifact_material_id := ""
 var artifact_provider := ""
 var artifact_resolution := 0
 var selected_agent := 1
+var workspace_view := "workshop"
+var latest_plan_text := ""
 var agent_bridge: RefCounted
 var agent_running := false
 var agent_progress := 0.0
@@ -121,10 +126,29 @@ func _create_agent_bridge() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		var mouse: Vector2 = event.position
+		var navigation_index := _navigation_index_at(mouse)
+		if navigation_index == 0:
+			_set_workspace_view("workshop")
+			return
+		if navigation_index == 1:
+			if latest_plan_text.is_empty():
+				toast_text = "Create a plan first, then it will appear here."
+				toast_until = Time.get_ticks_msec() + 2800
+			else:
+				_set_workspace_view("plan")
+			return
 		var agent_index := _agent_index_at(mouse)
 		if agent_index >= 0:
 			selected_agent = agent_index
 			queue_redraw()
+
+
+func _navigation_index_at(position: Vector2) -> int:
+	if position.x < 0.0 or position.x >= RAIL_W:
+		return -1
+	if position.y < 108.0 or position.y >= 184.0:
+		return -1
+	return clampi(int((position.y - 108.0) / 38.0), 0, 1)
 
 
 func _agent_index_at(position: Vector2) -> int:
@@ -190,6 +214,73 @@ func _create_controls() -> void:
 	)
 	pause_button.pressed.connect(_pause_weave)
 	add_child(pause_button)
+
+	plan_document = RichTextLabel.new()
+	plan_document.selection_enabled = true
+	plan_document.context_menu_enabled = true
+	plan_document.scroll_active = true
+	plan_document.add_theme_font_size_override("normal_font_size", 14)
+	plan_document.add_theme_color_override("default_color", TEXT)
+	plan_document.add_theme_color_override("font_selected_color", BG)
+	plan_document.add_theme_color_override(
+		"selection_color",
+		LIVE.lightened(0.08)
+	)
+	plan_document.add_theme_stylebox_override(
+		"normal",
+		_style(Color("#24221D"), BORDER_SOFT, 9, 22, 18)
+	)
+	plan_document.visible = false
+	add_child(plan_document)
+
+	plan_back_button = _workspace_button("←  WORKSHOP", false)
+	plan_back_button.pressed.connect(
+		func() -> void: _set_workspace_view("workshop")
+	)
+	plan_back_button.visible = false
+	add_child(plan_back_button)
+
+	plan_copy_button = _workspace_button("COPY PLAN", true)
+	plan_copy_button.pressed.connect(_copy_plan)
+	plan_copy_button.visible = false
+	add_child(plan_copy_button)
+
+
+func _workspace_button(label_text: String, primary: bool) -> Button:
+	var button := Button.new()
+	button.text = label_text
+	button.focus_mode = Control.FOCUS_ALL
+	button.add_theme_font_size_override("font_size", 11)
+	var background := LIVE if primary else SURFACE
+	var foreground := BG if primary else MUTED
+	button.add_theme_color_override("font_color", foreground)
+	button.add_theme_color_override(
+		"font_hover_color",
+		BG if primary else TEXT
+	)
+	button.add_theme_color_override(
+		"font_focus_color",
+		BG if primary else TEXT
+	)
+	button.add_theme_stylebox_override(
+		"normal",
+		_style(background, LIVE if primary else BORDER, 6, 12, 0)
+	)
+	button.add_theme_stylebox_override(
+		"hover",
+		_style(
+			background.lightened(0.08) if primary else RAISED,
+			LIVE.lightened(0.08) if primary else MUTED,
+			6,
+			12,
+			0
+		)
+	)
+	button.add_theme_stylebox_override(
+		"focus",
+		_style(background, LIVE, 6, 12, 0, 2)
+	)
+	return button
 
 
 func _create_preview() -> void:
@@ -736,6 +827,13 @@ func _layout_controls() -> void:
 	run_button.size = Vector2(122.0, 44.0)
 	pause_button.position = Vector2(inspector_x - 110.0, 9.0)
 	pause_button.size = Vector2(94.0, 40.0)
+	var plan_rect := _plan_document_rect(inspector_x, command_y)
+	plan_document.position = plan_rect.position
+	plan_document.size = plan_rect.size
+	plan_copy_button.position = Vector2(inspector_x - 122.0, 91.0)
+	plan_copy_button.size = Vector2(98.0, 34.0)
+	plan_back_button.position = Vector2(inspector_x - 238.0, 91.0)
+	plan_back_button.size = Vector2(108.0, 34.0)
 	queue_redraw()
 
 
@@ -743,6 +841,15 @@ func _preview_rect(inspector_x: float) -> Rect2:
 	var content_width := inspector_x - RAIL_W - 72.0
 	var preview_width := floorf(content_width * 0.58)
 	return Rect2(RAIL_W + 24.0, 181.0, preview_width, 267.0)
+
+
+func _plan_document_rect(inspector_x: float, command_y: float) -> Rect2:
+	return Rect2(
+		RAIL_W + 24.0,
+		143.0,
+		inspector_x - RAIL_W - 48.0,
+		command_y - 167.0
+	)
 
 
 func _style(
@@ -817,6 +924,7 @@ func _run_weave(text: String) -> void:
 		return
 
 	agent_running = true
+	_set_workspace_view("workshop")
 	agent_progress = 0.08
 	agent_status = "Opening a planning session"
 	run_button.disabled = true
@@ -872,10 +980,12 @@ func _handle_agent_event(event: Dictionary) -> void:
 		"message":
 			agent_progress = minf(0.88, agent_progress + 0.12)
 			agent_status = "Shaping the implementation plan"
-			if not event_text.is_empty():
-				_add_activity_event(
-					"AG", CYAN, "Antigravity", event_text, true
-				)
+			_set_live_activity(
+				"AG",
+				CYAN,
+				"Antigravity",
+				"Drafting an implementation-ready plan"
+			)
 		"tool_started":
 			agent_progress = minf(0.82, agent_progress + 0.08)
 			agent_status = "Inspecting project context"
@@ -892,15 +1002,20 @@ func _handle_agent_event(event: Dictionary) -> void:
 		"completed":
 			agent_progress = 1.0
 			agent_status = "Plan ready to review"
+			if not str(event.get("text", "")).strip_edges().is_empty():
+				latest_plan_text = str(event.get("text", "")).strip_edges()
+				_render_plan_document(latest_plan_text)
 			_add_activity_event(
 				"✓",
 				SAGE,
 				"Orchestrator",
-				event_text if not event_text.is_empty() else agent_status,
+				"Implementation plan is ready to review",
 				false
 			)
 			toast_text = "The implementation plan is ready."
 			toast_until = Time.get_ticks_msec() + 3200
+			if not latest_plan_text.is_empty():
+				_set_workspace_view("plan")
 		"failed", "protocol_error":
 			agent_status = "Planning stopped"
 			_add_activity_event(
@@ -940,15 +1055,104 @@ func _add_activity_event(
 
 func _clean_agent_text(value: String) -> String:
 	var compact := " ".join(value.replace("\r", "\n").split("\n", false))
+	compact = _strip_markdown(compact).strip_edges()
+	while compact.begins_with("#"):
+		compact = compact.trim_prefix("#").strip_edges()
 	if compact.length() > 96:
 		return compact.left(93) + "…"
 	return compact
+
+
+func _set_live_activity(
+	mark: String,
+	color: Color,
+	role: String,
+	text: String
+) -> void:
+	for item in activity_events:
+		if bool(item.get("live", false)):
+			item["mark"] = mark
+			item["color"] = color
+			item["role"] = role
+			item["text"] = text
+			item["time"] = "NOW"
+			return
+	_add_activity_event(mark, color, role, text, true)
+
+
+func _set_workspace_view(view_name: String) -> void:
+	workspace_view = view_name
+	var showing_plan := workspace_view == "plan" and not latest_plan_text.is_empty()
+	preview_container.visible = not showing_plan
+	preview_object_button.visible = not showing_plan
+	preview_material_button.visible = not showing_plan
+	preview_reset_button.visible = not showing_plan
+	plan_document.visible = showing_plan
+	plan_back_button.visible = showing_plan
+	plan_copy_button.visible = showing_plan
+	queue_redraw()
+
+
+func _render_plan_document(plan_text: String) -> void:
+	plan_document.clear()
+	for raw_line in plan_text.replace("\r", "").split("\n"):
+		var line := str(raw_line).strip_edges()
+		if line.is_empty():
+			plan_document.append_text("\n")
+			continue
+		var heading_level := 0
+		while heading_level < line.length() and line[heading_level] == "#":
+			heading_level += 1
+		if heading_level > 0 and heading_level < line.length():
+			line = line.substr(heading_level).strip_edges()
+			plan_document.push_font_size(20 if heading_level == 1 else 16)
+			plan_document.push_bold()
+			plan_document.append_text(_strip_markdown(line) + "\n")
+			plan_document.pop()
+			plan_document.pop()
+			plan_document.append_text("\n")
+			continue
+		if line.begins_with("- ") or line.begins_with("* "):
+			line = "• " + line.substr(2).strip_edges()
+		plan_document.append_text(_strip_markdown(line) + "\n")
+
+
+func _strip_markdown(value: String) -> String:
+	return value.replace("**", "").replace("__", "").replace("`", "")
+
+
+func _copy_plan() -> void:
+	if latest_plan_text.is_empty():
+		return
+	DisplayServer.clipboard_set(latest_plan_text)
+	toast_text = "Plan copied to the clipboard."
+	toast_until = Time.get_ticks_msec() + 2400
+	queue_redraw()
 
 
 func _handle_automation_args() -> void:
 	for argument in OS.get_cmdline_user_args():
 		if argument == "--material-preview":
 			_set_preview_mode(true)
+			continue
+		if argument == "--plan-preview":
+			latest_plan_text = (
+				"# Colder ceremonial shrine\n\n"
+				+ "## Direction\n"
+				+ "Preserve the broad silhouette while making the roofline "
+				+ "sharper and the stone palette quieter.\n\n"
+				+ "## Build steps\n"
+				+ "- Widen the lower plinth and keep every edge traversable.\n"
+				+ "- Replace the warm roof material with desaturated clay.\n"
+				+ "- Add restrained mist particles around the entrance.\n"
+				+ "- Validate the mobile triangle budget and collision mesh.\n\n"
+				+ "## Checks\n"
+				+ "1. Silhouette remains readable at gameplay distance.\n"
+				+ "2. Scene stays below 18k triangles.\n"
+				+ "3. Materials remain stylized rather than photoreal."
+			)
+			_render_plan_document(latest_plan_text)
+			_set_workspace_view("plan")
 			continue
 		if argument == "--smoke-test":
 			if not _run_self_checks():
@@ -1015,6 +1219,29 @@ func _run_self_checks() -> bool:
 	):
 		push_error("Studio preview controls were not created")
 		return false
+	if (
+		plan_document == null
+		or plan_back_button == null
+		or plan_copy_button == null
+	):
+		push_error("Studio plan review controls were not created")
+		return false
+	latest_plan_text = "# Test plan\n\n- Inspect the artifact."
+	_render_plan_document(latest_plan_text)
+	_set_workspace_view("plan")
+	if (
+		not plan_document.visible
+		or not plan_back_button.visible
+		or not plan_copy_button.visible
+		or preview_container.visible
+	):
+		push_error("Studio plan review visibility is inconsistent")
+		return false
+	_set_workspace_view("workshop")
+	latest_plan_text = ""
+	if plan_document.visible or not preview_container.visible:
+		push_error("Studio did not restore the workshop view")
+		return false
 	if preview_viewport.get_camera_3d() == null:
 		push_error("Studio preview has no active camera")
 		return false
@@ -1070,6 +1297,13 @@ func _run_self_checks() -> bool:
 	if _agent_index_at(Vector2(RAIL_W + 1, 301)) != -1:
 		push_error("Agent hit target accepts space outside the navigation rail")
 		return false
+	if (
+		_navigation_index_at(Vector2(31, 127)) != 0
+		or _navigation_index_at(Vector2(31, 165)) != 1
+		or _navigation_index_at(Vector2(RAIL_W + 1, 127)) != -1
+	):
+		push_error("Studio navigation hit targets are inconsistent")
+		return false
 	print("HEXLOOM_STUDIO_SELF_CHECKS_PASSED")
 	return true
 
@@ -1117,7 +1351,12 @@ func _draw_top_bar(w: float, inspector_x: float) -> void:
 
 	_text("⌘", Vector2(RAIL_W + 22, 35), 13, MUTED, true)
 	_text("coastal-observatory", Vector2(RAIL_W + 44, 29), 13, TEXT)
-	_text("/  workshop", Vector2(RAIL_W + 181, 29), 12, MUTED)
+	_text(
+		"/  plan review" if workspace_view == "plan" else "/  workshop",
+		Vector2(RAIL_W + 181, 29),
+		12,
+		MUTED
+	)
 	_badge(Vector2(RAIL_W + 276, 17), "DRAFT", CYAN, false)
 
 	var provider_x := inspector_x + 17.0
@@ -1132,8 +1371,8 @@ func _draw_left_rail(command_y: float) -> void:
 
 	_label("Your workspace", Vector2(20, 88))
 	var navigation := [
-		["⌁", "Workshop", true],
-		["⌘", "Plans", false],
+		["⌁", "Workshop", workspace_view == "workshop"],
+		["⌘", "Plans", workspace_view == "plan"],
 		["◇", "Assets", false],
 		["◫", "Playtest", false]
 	]
@@ -1165,6 +1404,9 @@ func _draw_left_rail(command_y: float) -> void:
 
 
 func _draw_work_area(inspector_x: float, command_y: float) -> void:
+	if workspace_view == "plan" and not latest_plan_text.is_empty():
+		_draw_plan_review(inspector_x, command_y)
+		return
 	var x0 := RAIL_W
 	var width := inspector_x - x0
 	var preview_rect := _preview_rect(inspector_x)
@@ -1267,6 +1509,26 @@ func _draw_work_area(inspector_x: float, command_y: float) -> void:
 			str(event["time"]),
 			bool(event["live"])
 		)
+
+
+func _draw_plan_review(inspector_x: float, command_y: float) -> void:
+	var x := RAIL_W + 24.0
+	_text("Plans", Vector2(x, 88), 11, MUTED)
+	_text("Implementation plan", Vector2(x, 116), 22, TEXT)
+	_text(
+		"Prepared by Antigravity · read-only planning session",
+		Vector2(x, 137),
+		11,
+		MUTED
+	)
+	_badge(Vector2(x + 220, 96), "READY", SAGE, false)
+	var document_rect := _plan_document_rect(inspector_x, command_y)
+	_text(
+		"Select text or copy the complete plan",
+		Vector2(document_rect.position.x + 1, document_rect.end.y + 17),
+		10,
+		DIM
+	)
 
 
 func _compact_step(

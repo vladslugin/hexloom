@@ -94,7 +94,10 @@ The Studio command field is connected to the native `HexloomAgentBridge`.
 mode on a background thread, then streams normalized session, message, tool,
 completion, and failure events into the activity view without blocking Godot.
 `Stop` cancels the complete agent process group. Hexloom never reads or stores
-the provider's login credentials.
+the provider's login credentials. Completed responses open in the Plans
+workspace as a selectable, scrollable document with readable headings and a
+one-click copy action; the event stream remains a concise execution history
+instead of duplicating raw response fragments.
 
 To inspect a generated texture artifact in Studio:
 
