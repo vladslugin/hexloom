@@ -4,7 +4,7 @@ art_style:
 material:
   id: ancient_stone_floor
   category: stone
-  resolution: 2048
+  resolution: 256
   seamless: true
   physical_size_meters: 2
   mobile_optimized: true

@@ -1,12 +1,29 @@
 #include "hexloom/core/material_request.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cctype>
 
 namespace hexloom {
 namespace {
 
 [[nodiscard]] bool is_power_of_two(std::uint32_t value) {
     return value != 0 && (value & (value - 1)) == 0;
+}
+
+[[nodiscard]] bool is_portable_identifier(std::string_view value) {
+    if (value.empty() || value.size() > 64) {
+        return false;
+    }
+
+    return std::ranges::all_of(value, [](unsigned char character) {
+        return std::islower(character) || std::isdigit(character) ||
+            character == '_' || character == '-';
+    });
+}
+
+[[nodiscard]] std::size_t map_index(TextureMap map) {
+    return static_cast<std::size_t>(map);
 }
 
 }  // namespace
@@ -16,6 +33,12 @@ std::vector<ValidationIssue> validate(const MaterialRequest& request) {
 
     if (request.id.empty()) {
         issues.push_back({"id", "Material id must not be empty."});
+    } else if (!is_portable_identifier(request.id)) {
+        issues.push_back({
+            "id",
+            "Material id may contain only lowercase letters, digits, "
+            "underscores, and hyphens.",
+        });
     }
 
     if (request.category.empty()) {
@@ -24,6 +47,12 @@ std::vector<ValidationIssue> validate(const MaterialRequest& request) {
 
     if (request.style_id.empty()) {
         issues.push_back({"style_id", "A material must reference an art style."});
+    } else if (!is_portable_identifier(request.style_id)) {
+        issues.push_back({
+            "style_id",
+            "Style id may contain only lowercase letters, digits, "
+            "underscores, and hyphens.",
+        });
     }
 
     if (!is_power_of_two(request.resolution)) {
@@ -56,6 +85,19 @@ std::vector<ValidationIssue> validate(const MaterialRequest& request) {
 
     if (request.maps.empty()) {
         issues.push_back({"maps", "At least one texture map is required."});
+    }
+
+    std::array<bool, 6> seen_maps{};
+    for (const auto map : request.maps) {
+        const auto index = map_index(map);
+        if (seen_maps[index]) {
+            issues.push_back({
+                "maps",
+                "Texture map '" + std::string(to_string(map)) +
+                    "' is listed more than once.",
+            });
+        }
+        seen_maps[index] = true;
     }
 
     const auto has_albedo =

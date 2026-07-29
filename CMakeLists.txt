@@ -35,6 +35,7 @@ if(HEXLOOM_BUILD_TESTS)
 endif()
 
 add_subdirectory(engine/core)
+add_subdirectory(engine/generation)
 add_subdirectory(apps/cli)
 
 if(HEXLOOM_BUILD_GODOT_ADAPTER)
@@ -60,6 +61,7 @@ endif()
 
 if(HEXLOOM_BUILD_TESTS)
     add_subdirectory(engine/core/tests)
+    add_subdirectory(engine/generation/tests)
 
     if(HEXLOOM_BUILD_GODOT_ADAPTER)
         find_program(HEXLOOM_GODOT_EXECUTABLE NAMES godot godot4)

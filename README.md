@@ -38,6 +38,10 @@ cmake --preset desktop-debug
 cmake --build --preset desktop-debug
 ctest --preset desktop-debug
 ./build/desktop-debug/apps/cli/hexloom validate games/material-lab/game.yaml
+./build/desktop-debug/apps/cli/hexloom generate-textures \
+  games/material-lab/game.yaml \
+  games/material-lab/generated/stone \
+  42
 godot --path godot/material-lab
 ```
 
@@ -47,6 +51,11 @@ the native adapter compiles only the Godot classes it actually uses.
 `game.yaml` is the source of truth for the Material Lab. Both the CLI and the
 Godot GDExtension parse it through the same C++ loader and return structured
 validation issues for malformed or unsupported input.
+
+The first Texture Generator provider is deterministic and offline. It writes
+raw RGBA8 texture maps plus an `artifact.yaml` containing the provider, seed,
+dimensions, filenames, and FNV-1a checksums. Output is committed atomically and
+existing directories are never overwritten.
 
 ## Repository layout
 

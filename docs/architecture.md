@@ -33,3 +33,10 @@ validated headlessly, rendered in Godot, or processed by a different adapter.
 `HexloomMaterialBridge` is the first GDExtension class. It converts Godot
 dictionaries into the same engine-independent contract, runs validation in the
 C++ core, and returns a structured result to the Material Lab scene.
+
+## Texture generation providers
+
+Texture generation is represented by a provider-independent
+`TextureGenerationJob`. Providers return a versioned artifact manifest and
+texture maps. The first deterministic provider exists to test reproducibility,
+filesystem safety, and Godot integration before an AI image provider is added.
