@@ -29,6 +29,7 @@ var preview_viewport: SubViewport
 var preview_camera: Camera3D
 var preview_shrine: Node3D
 var preview_material_ball: MeshInstance3D
+var preview_artifact_material: StandardMaterial3D
 var preview_object_button: Button
 var preview_material_button: Button
 var preview_reset_button: Button
@@ -37,6 +38,10 @@ var preview_pitch := 0.31
 var preview_distance := 10.2
 var preview_dragging := false
 var preview_has_focus := false
+var artifact_loaded := false
+var artifact_material_id := ""
+var artifact_provider := ""
+var artifact_resolution := 0
 var selected_agent := 1
 var pulse := 0.0
 var toast_text := ""
@@ -307,6 +312,9 @@ func _create_preview() -> void:
 		Color("#656967"),
 		0.76
 	)
+	preview_artifact_material = (
+		preview_material_ball.material_override as StandardMaterial3D
+	)
 	preview_material_ball.visible = false
 	scene_root.add_child(preview_material_ball)
 
@@ -316,6 +324,7 @@ func _create_preview() -> void:
 	scene_root.add_child(preview_camera)
 	_update_preview_camera()
 
+	_load_artifact_from_environment()
 	_create_preview_controls()
 
 
@@ -487,6 +496,177 @@ func _preview_mesh(
 	return instance
 
 
+func _load_artifact_from_environment() -> void:
+	var artifact_directory := OS.get_environment(
+		"HEXLOOM_ARTIFACT_DIRECTORY"
+	)
+	if artifact_directory.is_empty():
+		return
+
+	var manifest_path := artifact_directory.path_join("artifact.yaml")
+	var manifest := _parse_artifact_manifest(manifest_path)
+	if manifest.is_empty():
+		push_error("Could not parse Hexloom artifact: " + manifest_path)
+		return
+	if str(manifest.get("format", "")) != "rgba8":
+		push_error("Hexloom Studio only supports rgba8 texture artifacts")
+		return
+
+	var maps: Dictionary = manifest.get("maps", {})
+	var albedo := _load_artifact_texture(
+		artifact_directory,
+		maps.get("albedo", {})
+	)
+	var normal := _load_artifact_texture(
+		artifact_directory,
+		maps.get("normal", {})
+	)
+	var roughness := _load_artifact_texture(
+		artifact_directory,
+		maps.get("roughness", {})
+	)
+	var ambient_occlusion := _load_artifact_texture(
+		artifact_directory,
+		maps.get("ambient_occlusion", {})
+	)
+	if albedo == null or normal == null or roughness == null:
+		push_error("Hexloom artifact is missing required PBR maps")
+		return
+
+	preview_artifact_material.albedo_texture = albedo
+	preview_artifact_material.albedo_color = Color("#F8F4EC")
+	preview_artifact_material.normal_enabled = true
+	preview_artifact_material.normal_texture = normal
+	preview_artifact_material.roughness = 1.0
+	preview_artifact_material.roughness_texture = roughness
+	preview_artifact_material.roughness_texture_channel = (
+		BaseMaterial3D.TEXTURE_CHANNEL_RED
+	)
+	if ambient_occlusion != null:
+		preview_artifact_material.ao_enabled = true
+		preview_artifact_material.ao_texture = ambient_occlusion
+		preview_artifact_material.ao_texture_channel = (
+			BaseMaterial3D.TEXTURE_CHANNEL_RED
+		)
+	preview_artifact_material.texture_filter = (
+		BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	)
+
+	for child in preview_shrine.get_children():
+		if child is MeshInstance3D:
+			child.material_override = preview_artifact_material
+
+	artifact_loaded = true
+	artifact_material_id = str(manifest.get("material_id", ""))
+	artifact_provider = str(manifest.get("provider", ""))
+	artifact_resolution = int(manifest.get("resolution", 0))
+	print(
+		"HEXLOOM_STUDIO_ARTIFACT_LOADED material=%s provider=%s resolution=%d"
+		% [artifact_material_id, artifact_provider, artifact_resolution]
+	)
+
+
+func _parse_artifact_manifest(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+
+	var parsed := {
+		"material_id": "",
+		"provider": "",
+		"format": "",
+		"resolution": 0,
+		"maps": {}
+	}
+	var current_map: Dictionary = {}
+	for raw_line in FileAccess.get_file_as_string(path).split("\n"):
+		var line := str(raw_line).strip_edges()
+		if line.is_empty():
+			continue
+		if line.begins_with("- type:"):
+			if not current_map.is_empty():
+				_commit_manifest_map(parsed, current_map)
+			current_map = {
+				"type": _manifest_value(line),
+				"file": "",
+				"width": 0,
+				"height": 0
+			}
+		elif line.begins_with("material_id:"):
+			parsed["material_id"] = _manifest_value(line)
+		elif line.begins_with("provider:"):
+			parsed["provider"] = _manifest_value(line)
+		elif line.begins_with("format:"):
+			parsed["format"] = _manifest_value(line)
+		elif line.begins_with("file:") and not current_map.is_empty():
+			current_map["file"] = _manifest_value(line)
+		elif line.begins_with("width:") and not current_map.is_empty():
+			current_map["width"] = int(_manifest_value(line))
+		elif line.begins_with("height:") and not current_map.is_empty():
+			current_map["height"] = int(_manifest_value(line))
+
+	if not current_map.is_empty():
+		_commit_manifest_map(parsed, current_map)
+	if parsed["material_id"].is_empty() or parsed["maps"].is_empty():
+		return {}
+	return parsed
+
+
+func _commit_manifest_map(parsed: Dictionary, map_data: Dictionary) -> void:
+	var map_type := str(map_data.get("type", ""))
+	var width := int(map_data.get("width", 0))
+	var height := int(map_data.get("height", 0))
+	if map_type.is_empty() or width <= 0 or height <= 0:
+		return
+	parsed["maps"][map_type] = map_data.duplicate()
+	if int(parsed.get("resolution", 0)) == 0:
+		parsed["resolution"] = width
+
+
+func _manifest_value(line: String) -> String:
+	var separator := line.find(":")
+	if separator < 0:
+		return ""
+	return line.substr(separator + 1).strip_edges().trim_prefix(
+		"\""
+	).trim_suffix("\"")
+
+
+func _load_artifact_texture(
+	artifact_directory: String,
+	map_data: Dictionary
+) -> ImageTexture:
+	if map_data.is_empty():
+		return null
+	var width := int(map_data.get("width", 0))
+	var height := int(map_data.get("height", 0))
+	var filename := str(map_data.get("file", ""))
+	if (
+		width <= 0
+		or height <= 0
+		or width > 8192
+		or height > 8192
+		or filename.is_empty()
+		or filename.get_file() != filename
+		or filename.contains("..")
+	):
+		return null
+	var path := artifact_directory.path_join(filename)
+	if not FileAccess.file_exists(path):
+		return null
+	var bytes := FileAccess.get_file_as_bytes(path)
+	if bytes.size() != width * height * 4:
+		return null
+	var image := Image.create_from_data(
+		width,
+		height,
+		false,
+		Image.FORMAT_RGBA8,
+		bytes
+	)
+	image.generate_mipmaps()
+	return ImageTexture.create_from_image(image)
+
+
 func _layout_controls() -> void:
 	var w := size.x
 	var inspector_x := w - INSPECTOR_W
@@ -591,6 +771,27 @@ func _handle_automation_args() -> void:
 
 
 func _run_self_checks() -> bool:
+	var artifact_directory := OS.get_environment(
+		"HEXLOOM_ARTIFACT_DIRECTORY"
+	)
+	if not artifact_directory.is_empty() and not artifact_loaded:
+		push_error("Studio did not load the requested texture artifact")
+		return false
+	if artifact_loaded and (
+		artifact_material_id.is_empty()
+		or artifact_provider.is_empty()
+		or artifact_resolution <= 0
+	):
+		push_error("Studio loaded incomplete artifact metadata")
+		return false
+	var unsafe_map := {
+		"file": "../outside.rgba8",
+		"width": 16,
+		"height": 16
+	}
+	if _load_artifact_texture("/tmp", unsafe_map) != null:
+		push_error("Studio accepted an unsafe artifact map path")
+		return false
 	if preview_container == null or preview_viewport == null:
 		push_error("Studio preview was not created")
 		return false
@@ -954,7 +1155,12 @@ func _draw_inspector(inspector_x: float, command_y: float) -> void:
 	_property_row(x, 213, "geometry", "low-poly · soft bevel")
 	_property_row(x, 239, "palette", "cold stone · warm fire")
 	_property_row(x, 265, "silhouette", "exaggerated · readable")
-	_property_row(x, 291, "surface", "stylized PBR")
+	_property_row(
+		x,
+		291,
+		"surface",
+		"generated PBR" if artifact_loaded else "stylized PBR"
+	)
 
 	_draw_section_line(inspector_x, 316.0, width)
 	_label("Rules for this change", Vector2(x, 345))
@@ -963,10 +1169,39 @@ func _draw_inspector(inspector_x: float, command_y: float) -> void:
 	_constraint(x, 456, "03", "No photoreal materials", "STYLE", AMBER)
 
 	_draw_section_line(inspector_x, 492.0, width)
-	_label("Expected assets", Vector2(x, 521))
-	_artifact_row(x, 548, "◇", "shrine_blockout.glb", "writing", CYAN)
-	_artifact_row(x, 588, "▦", "cold_stone_albedo", "queued", MUTED)
-	_artifact_row(x, 628, "⌁", "shrine_test.tscn", "waiting", MUTED)
+	_label(
+		"Loaded artifact" if artifact_loaded else "Expected assets",
+		Vector2(x, 521)
+	)
+	if artifact_loaded:
+		_artifact_row(
+			x,
+			548,
+			"▦",
+			artifact_material_id,
+			"loaded",
+			SAGE
+		)
+		_artifact_row(
+			x,
+			588,
+			"◇",
+			"%d × %d rgba8" % [artifact_resolution, artifact_resolution],
+			"4 maps",
+			CYAN
+		)
+		_artifact_row(
+			x,
+			628,
+			"↗",
+			artifact_provider,
+			"source",
+			MUTED
+		)
+	else:
+		_artifact_row(x, 548, "◇", "shrine_blockout.glb", "writing", CYAN)
+		_artifact_row(x, 588, "▦", "cold_stone_albedo", "queued", MUTED)
+		_artifact_row(x, 628, "⌁", "shrine_test.tscn", "waiting", MUTED)
 
 	var note_y := command_y - 109.0
 	_panel(

@@ -86,8 +86,11 @@ if(HEXLOOM_BUILD_TESTS)
                 NAME hexloom_studio_smoke
                 COMMAND
                     ${CMAKE_COMMAND}
+                    -DHEXLOOM_CLI=$<TARGET_FILE:hexloom>
                     -DHEXLOOM_GODOT=${HEXLOOM_GODOT_EXECUTABLE}
                     -DHEXLOOM_STUDIO_PROJECT=${CMAKE_CURRENT_SOURCE_DIR}/godot/studio
+                    -DHEXLOOM_SPEC=${CMAKE_CURRENT_SOURCE_DIR}/engine/core/tests/fixtures/valid_game.yaml
+                    -DHEXLOOM_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/studio-smoke-artifact
                     -P
                     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/run-studio-smoke-test.cmake
             )

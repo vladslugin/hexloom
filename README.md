@@ -89,6 +89,20 @@ context, and a project-aware command field in one creator-focused workspace.
 The preview supports mouse orbit, wheel zoom, keyboard camera controls, camera
 reset, and object/material inspection modes.
 
+To inspect a generated texture artifact in Studio:
+
+```sh
+./build/desktop-debug/apps/cli/hexloom generate-textures \
+  engine/core/tests/fixtures/valid_game.yaml \
+  /tmp/hexloom-stone \
+  42
+HEXLOOM_ARTIFACT_DIRECTORY=/tmp/hexloom-stone godot --path godot/studio
+```
+
+Studio reads `artifact.yaml`, validates the referenced raw RGBA8 maps, and
+applies the generated albedo, normal, roughness, and ambient-occlusion textures
+to both the object and material inspection modes.
+
 ## Repository layout
 
 ```text
