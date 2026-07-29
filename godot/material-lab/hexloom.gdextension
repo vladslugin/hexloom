@@ -1,0 +1,11 @@
+[configuration]
+
+entry_symbol = "hexloom_library_init"
+compatibility_minimum = "4.7"
+reloadable = true
+
+[libraries]
+
+macos = "res://bin/libhexloom_godot.dylib"
+linux = "res://bin/libhexloom_godot.so"
+windows = "res://bin/hexloom_godot.dll"

@@ -1,0 +1,16 @@
+# Build outputs
+/build/
+/out/
+
+# IDE and operating system files
+.DS_Store
+.idea/
+.vscode/
+
+# Godot generated files
+.godot/
+/godot/material-lab/bin/*
+!/godot/material-lab/bin/.gitkeep
+
+# Generated assets are reproducible and should not be committed by default.
+/games/*/generated/

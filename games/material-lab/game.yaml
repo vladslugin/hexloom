@@ -1,0 +1,28 @@
+game:
+  id: material-lab
+  title: Material Lab
+  type: technical_demo
+
+art_style:
+  id: soft_neon_scifi
+  shapes: rounded
+  detail_level: medium
+  contrast: high
+  saturation: 0.75
+  forbidden:
+    - photorealism
+    - visible_text
+    - directional_lighting
+
+material:
+  id: ancient_stone_floor
+  category: stone
+  resolution: 2048
+  seamless: true
+  physical_size_meters: 2
+  mobile_optimized: true
+  maps:
+    - albedo
+    - normal
+    - roughness
+    - ambient_occlusion

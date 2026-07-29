@@ -1,0 +1,53 @@
+# Hexloom
+
+**Where agents weave worlds.**
+
+Hexloom is an AI-first game creation studio. Specialized agents will
+design mechanics, generate C++ code and assets, assemble Godot projects, run
+tests, and build games for desktop and mobile platforms.
+
+## First vertical slice
+
+The first milestone intentionally covers one complete workflow:
+
+1. Read a structured material request.
+2. Validate it in the engine-independent C++ core.
+3. Generate or import a seamless texture set.
+4. Create a Godot material and preview scene.
+5. Run automated and visual checks.
+
+The repository currently contains the first part of that workflow: the
+engine-independent material contract, a CLI smoke test, unit tests, a native
+GDExtension bridge, and a Godot Material Lab preview scene.
+
+## Build
+
+Requirements:
+
+- CMake 3.25+
+- Ninja
+- a C++20 compiler
+- Git (CMake fetches a pinned revision of `godot-cpp`)
+- Godot 4.7
+
+```sh
+cmake --preset desktop-debug
+cmake --build --preset desktop-debug
+ctest --preset desktop-debug
+./build/desktop-debug/apps/cli/hexloom
+godot --path godot/material-lab
+```
+
+The desktop preset builds a deliberately trimmed `godot-cpp` API profile, so
+the native adapter compiles only the Godot classes it actually uses.
+
+## Repository layout
+
+```text
+apps/             User-facing Hexloom applications
+engine/core/      Engine-independent C++ contracts and logic
+engine/adapters/  Runtime-specific bridges, beginning with Godot
+games/            Generated game workspaces
+godot/            Godot adapters and preview projects
+docs/             Architecture and product decisions
+```

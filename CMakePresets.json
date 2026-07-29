@@ -1,0 +1,37 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "desktop-debug",
+      "displayName": "Desktop Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/desktop-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "HEXLOOM_BUILD_TESTS": "ON",
+        "HEXLOOM_BUILD_GODOT_ADAPTER": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "desktop-debug",
+      "configurePreset": "desktop-debug"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "desktop-debug",
+      "configurePreset": "desktop-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
