@@ -24,6 +24,8 @@ var mono: Font
 var command_field: LineEdit
 var run_button: Button
 var pause_button: Button
+var preview_container: SubViewportContainer
+var preview_viewport: SubViewport
 var selected_agent := 1
 var pulse := 0.0
 var toast_text := ""
@@ -34,6 +36,7 @@ func _ready() -> void:
 	font = ThemeDB.fallback_font
 	mono = ThemeDB.fallback_font
 	set_process(true)
+	_create_preview()
 	_create_controls()
 	resized.connect(_layout_controls)
 	_layout_controls()
@@ -126,20 +129,194 @@ func _create_controls() -> void:
 	add_child(pause_button)
 
 
+func _create_preview() -> void:
+	preview_container = SubViewportContainer.new()
+	preview_container.stretch = true
+	preview_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview_container.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	add_child(preview_container)
+
+	preview_viewport = SubViewport.new()
+	preview_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	preview_viewport.msaa_3d = Viewport.MSAA_4X
+	preview_container.add_child(preview_viewport)
+
+	var scene_root := Node3D.new()
+	preview_viewport.add_child(scene_root)
+
+	var world_environment := WorldEnvironment.new()
+	var environment := Environment.new()
+	environment.background_mode = Environment.BG_COLOR
+	environment.background_color = Color("#211F1A")
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_color = Color("#B5AA9A")
+	environment.ambient_light_energy = 0.62
+	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	world_environment.environment = environment
+	scene_root.add_child(world_environment)
+
+	var ground_mesh := PlaneMesh.new()
+	ground_mesh.size = Vector2(18, 18)
+	var ground := _preview_mesh(
+		ground_mesh,
+		Vector3(0, 0, 0),
+		Color("#2D2B26"),
+		0.94
+	)
+	scene_root.add_child(ground)
+
+	var shrine := Node3D.new()
+	shrine.rotation_degrees.y = -12.0
+	scene_root.add_child(shrine)
+
+	var base_lower_mesh := CylinderMesh.new()
+	base_lower_mesh.top_radius = 2.65
+	base_lower_mesh.bottom_radius = 2.82
+	base_lower_mesh.height = 0.34
+	base_lower_mesh.radial_segments = 8
+	shrine.add_child(
+		_preview_mesh(
+			base_lower_mesh,
+			Vector3(0, 0.17, 0),
+			Color("#4E504F"),
+			0.86
+		)
+	)
+
+	var base_upper_mesh := CylinderMesh.new()
+	base_upper_mesh.top_radius = 2.3
+	base_upper_mesh.bottom_radius = 2.48
+	base_upper_mesh.height = 0.3
+	base_upper_mesh.radial_segments = 8
+	shrine.add_child(
+		_preview_mesh(
+			base_upper_mesh,
+			Vector3(0, 0.49, 0),
+			Color("#626563"),
+			0.82
+		)
+	)
+
+	var wall_mesh := BoxMesh.new()
+	wall_mesh.size = Vector3(3.65, 2.15, 0.32)
+	shrine.add_child(
+		_preview_mesh(
+			wall_mesh,
+			Vector3(0, 1.72, -0.88),
+			Color("#5D6261"),
+			0.88
+		)
+	)
+
+	var column_mesh := CylinderMesh.new()
+	column_mesh.top_radius = 0.22
+	column_mesh.bottom_radius = 0.28
+	column_mesh.height = 2.4
+	column_mesh.radial_segments = 8
+	for column_x in [-1.55, 1.55]:
+		for column_z in [-0.72, 0.72]:
+			shrine.add_child(
+				_preview_mesh(
+					column_mesh,
+					Vector3(column_x, 1.72, column_z),
+					Color("#7D817D"),
+					0.78
+				)
+			)
+
+	var roof_mesh := CylinderMesh.new()
+	roof_mesh.top_radius = 0.58
+	roof_mesh.bottom_radius = 2.55
+	roof_mesh.height = 1.02
+	roof_mesh.radial_segments = 6
+	shrine.add_child(
+		_preview_mesh(
+			roof_mesh,
+			Vector3(0, 3.39, 0),
+			Color("#756257"),
+			0.72
+		)
+	)
+
+	var altar_mesh := BoxMesh.new()
+	altar_mesh.size = Vector3(1.1, 0.72, 0.7)
+	shrine.add_child(
+		_preview_mesh(
+			altar_mesh,
+			Vector3(0, 0.98, -0.15),
+			Color("#6C6860"),
+			0.82
+		)
+	)
+
+	var warm_light := OmniLight3D.new()
+	warm_light.position = Vector3(0, 1.45, -0.15)
+	warm_light.light_color = Color("#F3AE72")
+	warm_light.light_energy = 2.0
+	warm_light.omni_range = 5.0
+	scene_root.add_child(warm_light)
+
+	var key_light := DirectionalLight3D.new()
+	key_light.rotation_degrees = Vector3(-48, -38, 0)
+	key_light.light_color = Color("#D8D3C8")
+	key_light.light_energy = 0.92
+	key_light.shadow_enabled = true
+	scene_root.add_child(key_light)
+
+	var fill_light := DirectionalLight3D.new()
+	fill_light.rotation_degrees = Vector3(-25, 135, 0)
+	fill_light.light_color = Color("#91B7C0")
+	fill_light.light_energy = 0.42
+	scene_root.add_child(fill_light)
+
+	var camera := Camera3D.new()
+	camera.position = Vector3(6.8, 4.7, 7.6)
+	camera.look_at_from_position(camera.position, Vector3(0, 1.55, 0))
+	camera.fov = 38.0
+	camera.current = true
+	scene_root.add_child(camera)
+
+
+func _preview_mesh(
+	mesh: Mesh,
+	position: Vector3,
+	color: Color,
+	roughness: float
+) -> MeshInstance3D:
+	var instance := MeshInstance3D.new()
+	instance.mesh = mesh
+	instance.position = position
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = roughness
+	material.metallic = 0.03
+	instance.material_override = material
+	return instance
+
+
 func _layout_controls() -> void:
 	var w := size.x
 	var inspector_x := w - INSPECTOR_W
 	var command_y := size.y - COMMAND_H
-	command_field.position = Vector2(RAIL_W + 24.0, command_y + 24.0)
+	var preview_rect := _preview_rect(inspector_x)
+	preview_container.position = preview_rect.position + Vector2(1, 1)
+	preview_container.size = preview_rect.size - Vector2(2, 2)
+	command_field.position = Vector2(RAIL_W + 24.0, command_y + 19.0)
 	command_field.size = Vector2(
 		maxf(320.0, inspector_x - RAIL_W - 252.0),
-		42.0
+		44.0
 	)
-	run_button.position = Vector2(inspector_x - 138.0, command_y + 24.0)
-	run_button.size = Vector2(122.0, 42.0)
-	pause_button.position = Vector2(inspector_x - 106.0, 10.0)
-	pause_button.size = Vector2(90.0, 36.0)
+	run_button.position = Vector2(inspector_x - 138.0, command_y + 19.0)
+	run_button.size = Vector2(122.0, 44.0)
+	pause_button.position = Vector2(inspector_x - 110.0, 9.0)
+	pause_button.size = Vector2(94.0, 40.0)
 	queue_redraw()
+
+
+func _preview_rect(inspector_x: float) -> Rect2:
+	var content_width := inspector_x - RAIL_W - 72.0
+	var preview_width := floorf(content_width * 0.58)
+	return Rect2(RAIL_W + 24.0, 181.0, preview_width, 267.0)
 
 
 func _style(
@@ -211,6 +388,15 @@ func _handle_automation_args() -> void:
 
 
 func _run_self_checks() -> bool:
+	if preview_container == null or preview_viewport == null:
+		push_error("Studio preview was not created")
+		return false
+	if preview_viewport.get_camera_3d() == null:
+		push_error("Studio preview has no active camera")
+		return false
+	if _preview_rect(size.x - INSPECTOR_W).size.x < 400.0:
+		push_error("Studio preview is too narrow at the reference viewport")
+		return false
 	var expected_centers := [
 		Vector2(31, 301),
 		Vector2(31, 345),
@@ -324,7 +510,11 @@ func _draw_left_rail(command_y: float) -> void:
 func _draw_work_area(inspector_x: float, command_y: float) -> void:
 	var x0 := RAIL_W
 	var width := inspector_x - x0
-	var map_bottom := minf(493.0, command_y - 260.0)
+	var preview_rect := _preview_rect(inspector_x)
+	var plan_x := preview_rect.end.x + 24.0
+	var plan_width := inspector_x - plan_x - 24.0
+	var progress_y := 464.0
+	var activity_y := 543.0
 
 	_text("Workshop", Vector2(x0 + 24, 88), 11, MUTED)
 	_text(
@@ -339,39 +529,70 @@ func _draw_work_area(inspector_x: float, command_y: float) -> void:
 		12,
 		MUTED
 	)
-	_badge(Vector2(inspector_x - 102, 78), "● CREATING", LIVE, true)
+	_badge(Vector2(inspector_x - 88, 78), "PREVIEW", CYAN, false)
 
-	var intent := Vector2(x0 + 60, 232)
-	var router := Vector2(x0 + width * 0.37, 232)
-	var artisan := Vector2(x0 + width * 0.62, 186)
-	var engineer := Vector2(x0 + width * 0.62, 278)
-	var artifact := Vector2(inspector_x - 84, 232)
-
-	_thread(intent + Vector2(80, 0), router - Vector2(55, 0), LIVE, true)
-	_thread(router + Vector2(55, -7), artisan - Vector2(61, 0), CYAN, true)
-	_thread(router + Vector2(55, 8), engineer - Vector2(61, 0), MUTED, false)
-	_thread(artisan + Vector2(61, 0), artifact - Vector2(58, 0), CYAN, true)
-	_thread(engineer + Vector2(61, 0), artifact - Vector2(58, 0), DIM, false)
-
-	_node(intent, Vector2(160, 82), "DIRECTION", "Shrine silhouette", "01", LIVE)
-	_node(router, Vector2(110, 72), "PLAN", "Four steps", "02", LIVE)
-	_node(artisan, Vector2(122, 72), "ARTISAN", "Mesh draft", "03", CYAN)
-	_node(engineer, Vector2(122, 72), "ENGINEER", "Waiting", "04", MUTED)
-	_node(artifact, Vector2(116, 82), "RESULT", "shrine.glb", "05", AMBER)
-	_draw_weave_trace(
-		Rect2(x0 + 24, map_bottom - 83, width - 48, 52)
+	_label("Shrine preview", Vector2(preview_rect.position.x, 168))
+	_panel(
+		preview_rect,
+		Color("#24221D"),
+		BORDER,
+		10
 	)
 
-	_text("Activity", Vector2(x0 + 24, map_bottom + 31), 11, MUTED)
-	_text("5 events", Vector2(inspector_x - 70, map_bottom + 31), 10, MUTED, true)
+	_label("Build plan", Vector2(plan_x, 168))
+	_compact_step(
+		Rect2(plan_x, 181, plan_width, 55),
+		"01",
+		"Direction understood",
+		"complete",
+		SAGE,
+		false
+	)
+	_compact_step(
+		Rect2(plan_x, 245, plan_width, 55),
+		"02",
+		"Mesh draft",
+		"Artisan is creating",
+		LIVE,
+		true
+	)
+	_compact_step(
+		Rect2(plan_x, 309, plan_width, 55),
+		"03",
+		"Materials and lighting",
+		"waiting",
+		CYAN,
+		false
+	)
+	_compact_step(
+		Rect2(plan_x, 373, plan_width, 55),
+		"04",
+		"Scene validation",
+		"waiting",
+		MUTED,
+		false
+	)
+
+	_draw_weave_trace(
+		Rect2(x0 + 24, progress_y, width - 48, 54)
+	)
+
 	draw_line(
-		Vector2(x0, map_bottom),
-		Vector2(inspector_x, map_bottom),
+		Vector2(x0, activity_y),
+		Vector2(inspector_x, activity_y),
 		BORDER,
 		1.0
 	)
+	_text("Activity", Vector2(x0 + 24, activity_y + 30), 11, MUTED)
+	_text(
+		"5 events",
+		Vector2(inspector_x - 70, activity_y + 30),
+		10,
+		MUTED,
+		true
+	)
 
-	var stream_y := map_bottom + 54.0
+	var stream_y := activity_y + 52.0
 	var stream_width := width - 48.0
 	_event_row(
 		Rect2(x0 + 24, stream_y, stream_width, 50),
@@ -409,6 +630,26 @@ func _draw_work_area(inspector_x: float, command_y: float) -> void:
 		"19s",
 		false
 	)
+
+
+func _compact_step(
+	rect: Rect2,
+	number: String,
+	title: String,
+	state: String,
+	accent: Color,
+	active: bool
+) -> void:
+	if active:
+		_panel(rect, Color("#2D2922"), Color(accent, 0.52), 8)
+	else:
+		_panel(rect, Color("#24221D"), BORDER_SOFT, 8)
+	draw_circle(rect.position + Vector2(19, 27), 11.0, Color(accent, 0.12))
+	_text(number, rect.position + Vector2(13, 31), 9, accent, true)
+	_text(title, rect.position + Vector2(40, 23), 11, TEXT)
+	_text(state, rect.position + Vector2(40, 41), 9, accent if active else MUTED)
+	if active:
+		_live_dot(rect.end - Vector2(17, 27), accent)
 
 
 func _draw_weave_trace(rect: Rect2) -> void:
@@ -574,42 +815,6 @@ func _agent_row(y: float, agent: Array, selected: bool) -> void:
 		draw_circle(Vector2(RAIL_W - 27, y + 18), 3.0, agent[3])
 
 
-func _node(
-	center: Vector2,
-	node_size: Vector2,
-	kind: String,
-	title: String,
-	number: String,
-	accent: Color
-) -> void:
-	var rect := Rect2(center - node_size * 0.5, node_size)
-	_panel(rect, Color("#25231E"), BORDER, 8)
-	draw_circle(rect.position + Vector2(16, 17), 3.0, accent)
-	_text(kind, rect.position + Vector2(26, 21), 9, accent, true)
-	_text(title, rect.position + Vector2(12, 48), 11, TEXT)
-	_text(number, rect.end - Vector2(24, 10), 8, DIM, true)
-
-
-func _thread(
-	start: Vector2,
-	end: Vector2,
-	color: Color,
-	active: bool
-) -> void:
-	var midpoint_x := (start.x + end.x) * 0.5
-	var points := PackedVector2Array([
-		start,
-		Vector2(midpoint_x, start.y),
-		Vector2(midpoint_x, end.y),
-		end
-	])
-	draw_polyline(points, Color(color, 0.76 if active else 0.34), 1.5, true)
-	if active:
-		var t := fmod(pulse / 2.4 + start.x * 0.0003, 1.0)
-		var moving := start.lerp(end, t)
-		draw_circle(moving, 3.0, color)
-
-
 func _event_row(
 	rect: Rect2,
 	glyph: String,
@@ -642,9 +847,9 @@ func _constraint(
 	color: Color
 ) -> void:
 	draw_circle(Vector2(x + 12, y - 4), 11.0, Color(color, 0.12))
-	_text(number, Vector2(x + 6, y), 8, color, true)
+	_text(number, Vector2(x + 6, y), 9, color, true)
 	_text(title, Vector2(x + 33, y - 4), 11, TEXT)
-	_text(state, Vector2(x + 33, y + 12), 8, color, true)
+	_text(state, Vector2(x + 33, y + 12), 9, color, true)
 
 
 func _artifact_row(
@@ -663,7 +868,7 @@ func _artifact_row(
 	)
 	_text(glyph, Vector2(x + 11, y + 4), 11, color, true)
 	_text(title, Vector2(x + 34, y + 3), 10, TEXT)
-	_text(state, Vector2(x + 205, y + 3), 8, color, true)
+	_text(state, Vector2(x + 205, y + 3), 9, color, true)
 
 
 func _badge(

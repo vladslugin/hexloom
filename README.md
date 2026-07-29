@@ -83,9 +83,9 @@ loads it through the native bridge, applies it to the preview sphere, and
 verifies the expected texture-loading signal.
 
 Hexloom Studio is the first interactive shell for directing that work. Its
-Godot project presents the world loom, specialized agent crew, live execution
-stream, durable project memory, artifact context, and a project-aware command
-field in one operator-focused workspace.
+Godot project presents a native 3D artifact preview, compact generation plan,
+specialized agent crew, live execution stream, durable project memory, artifact
+context, and a project-aware command field in one creator-focused workspace.
 
 ## Repository layout
 

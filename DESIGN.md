@@ -221,6 +221,13 @@ plain-language result. Tool calls can expand to show command, scope, and raw
 output. Running events use restrained activity motion; completed events become
 quiet history instead of continuing to glow.
 
+### Artifact Preview
+
+The selected game artifact owns the largest region of the workspace. Models
+render in a real native 3D viewport with neutral studio lighting, enough
+environment to judge silhouette, and no decorative HUD. The generation plan
+sits beside the preview as supporting context, never on top of the work.
+
 ## 6. Do's and Don'ts
 
 ### Do:
