@@ -14,6 +14,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# MSVC initializes each target's runtime library at target-creation time, and
+# godot-cpp selects the static release CRT for GDExtension libraries. Choose it
+# here, before any target exists, so the core, the CLI, the tests, and the
+# adapter all link against one runtime.
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY
+        "MultiThreaded"
+        CACHE STRING
+        "MSVC runtime library shared by every Hexloom target."
+    )
+endif()
+
 option(HEXLOOM_BUILD_TESTS "Build Hexloom tests" ON)
 option(HEXLOOM_BUILD_GODOT_ADAPTER "Build the Godot GDExtension adapter" OFF)
 
