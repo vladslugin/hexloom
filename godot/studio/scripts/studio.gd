@@ -25,7 +25,18 @@ var command_field: LineEdit
 var run_button: Button
 var pause_button: Button
 var access_button: Button
+var provider_button: Button
 var agent_access := "read_only"
+# Providers are interchangeable by design; the launch plan differs, the rest of
+# Hexloom does not care which one is running.
+const PROVIDERS := ["claude", "codex", "gemini", "antigravity"]
+const PROVIDER_LABELS := {
+	"claude": "Claude Code",
+	"codex": "Codex",
+	"gemini": "Gemini CLI",
+	"antigravity": "Antigravity"
+}
+var agent_provider := "claude"
 var memory_path := ""
 var memory_loaded := false
 var memory_total := 0
@@ -248,6 +259,32 @@ func _create_controls() -> void:
 	)
 	run_button.pressed.connect(func() -> void: _run_weave(command_field.text))
 	add_child(run_button)
+
+	var configured_provider := OS.get_environment("HEXLOOM_AGENT_PROVIDER")
+	if PROVIDERS.has(configured_provider):
+		agent_provider = configured_provider
+
+	provider_button = Button.new()
+	provider_button.focus_mode = Control.FOCUS_ALL
+	provider_button.add_theme_font_size_override("font_size", 11)
+	provider_button.add_theme_color_override("font_color", TEXT)
+	provider_button.add_theme_color_override("font_hover_color", TEXT)
+	provider_button.add_theme_color_override("font_focus_color", TEXT)
+	provider_button.add_theme_stylebox_override(
+		"normal",
+		_style(SURFACE, BORDER_SOFT, 6, 10, 0)
+	)
+	provider_button.add_theme_stylebox_override(
+		"hover",
+		_style(RAISED, MUTED, 6, 10, 0)
+	)
+	provider_button.add_theme_stylebox_override(
+		"focus",
+		_style(SURFACE, CYAN, 6, 10, 0, 2)
+	)
+	provider_button.pressed.connect(_cycle_agent_provider)
+	add_child(provider_button)
+	_refresh_provider_button()
 
 	access_button = Button.new()
 	access_button.focus_mode = Control.FOCUS_ALL
@@ -883,6 +920,8 @@ func _layout_controls() -> void:
 	)
 	access_button.position = Vector2(inspector_x - 300.0, command_y + 19.0)
 	access_button.size = Vector2(154.0, 44.0)
+	provider_button.position = Vector2(inspector_x + 31.0, 12.0)
+	provider_button.size = Vector2(INSPECTOR_W - 51.0, 24.0)
 	run_button.position = Vector2(inspector_x - 138.0, command_y + 19.0)
 	run_button.size = Vector2(122.0, 44.0)
 	pause_button.position = Vector2(inspector_x - 110.0, 9.0)
@@ -957,6 +996,28 @@ func _panel(
 	)
 
 
+func _provider_label() -> String:
+	return str(PROVIDER_LABELS.get(agent_provider, agent_provider))
+
+
+func _cycle_agent_provider() -> void:
+	if agent_running:
+		toast_text = "Stop the current run before switching provider."
+		toast_until = Time.get_ticks_msec() + 2800
+		queue_redraw()
+		return
+	var next := (PROVIDERS.find(agent_provider) + 1) % PROVIDERS.size()
+	agent_provider = str(PROVIDERS[next])
+	_refresh_provider_button()
+	toast_text = "%s will run the next direction." % _provider_label()
+	toast_until = Time.get_ticks_msec() + 2400
+	queue_redraw()
+
+
+func _refresh_provider_button() -> void:
+	provider_button.text = _provider_label()
+
+
 func _toggle_agent_access() -> void:
 	if agent_running:
 		toast_text = "Stop the current run before changing what it may touch."
@@ -1022,7 +1083,7 @@ func _run_weave(text: String) -> void:
 		queue_redraw()
 		return
 	if agent_running:
-		toast_text = "Antigravity is already preparing a plan."
+		toast_text = "%s is already working." % _provider_label()
 		toast_until = Time.get_ticks_msec() + 2600
 		queue_redraw()
 		return
@@ -1043,13 +1104,15 @@ func _run_weave(text: String) -> void:
 
 	var result: Dictionary = agent_bridge.call(
 		"start",
-		"antigravity",
+		agent_provider,
 		agent_access,
 		project_root,
 		str(composed.get("prompt", ""))
 	)
 	if not bool(result.get("started", false)):
-		toast_text = str(result.get("error", "Could not start Antigravity."))
+		toast_text = str(
+			result.get("error", "Could not start %s." % _provider_label())
+		)
 		toast_until = Time.get_ticks_msec() + 4200
 		queue_redraw()
 		return
@@ -1069,9 +1132,9 @@ func _run_weave(text: String) -> void:
 		AMBER if writing else LIVE,
 		"Orchestrator",
 		(
-			"Direction received; Antigravity may edit project files"
+			"Direction received; %s may edit project files" % _provider_label()
 			if writing
-			else "Direction received; opening Antigravity in read-only mode"
+			else "Direction received; %s is planning only" % _provider_label()
 		),
 		true
 	)
@@ -1087,9 +1150,9 @@ func _run_weave(text: String) -> void:
 			false
 		)
 	toast_text = (
-		"Antigravity is changing the project."
+		"%s is changing the project." % _provider_label()
 		if writing
-		else "Antigravity is preparing the build plan."
+		else "%s is preparing the build plan." % _provider_label()
 	)
 	toast_until = Time.get_ticks_msec() + 2600
 	queue_redraw()
@@ -1099,7 +1162,7 @@ func _pause_weave() -> void:
 	if agent_bridge != null and agent_running:
 		agent_bridge.call("cancel")
 		agent_status = "Stopping at a safe checkpoint"
-		toast_text = "Stopping Antigravity safely…"
+		toast_text = "Stopping %s safely…" % _provider_label()
 	else:
 		toast_text = "There is no active agent run."
 	toast_until = Time.get_ticks_msec() + 2600
@@ -1127,7 +1190,7 @@ func _handle_agent_event(event: Dictionary) -> void:
 			agent_progress = maxf(agent_progress, 0.18)
 			agent_status = "Planning session connected"
 			_add_activity_event(
-				"AG", CYAN, "Antigravity", agent_status, true
+				"AG", CYAN, _provider_label(), agent_status, true
 			)
 		"message":
 			agent_progress = minf(0.88, agent_progress + 0.12)
@@ -1135,7 +1198,7 @@ func _handle_agent_event(event: Dictionary) -> void:
 			_set_live_activity(
 				"AG",
 				CYAN,
-				"Antigravity",
+				_provider_label(),
 				"Drafting an implementation-ready plan"
 			)
 		"tool_started":
@@ -1173,7 +1236,7 @@ func _handle_agent_event(event: Dictionary) -> void:
 			_add_activity_event(
 				"!",
 				CORAL,
-				"Antigravity",
+				_provider_label(),
 				event_text if not event_text.is_empty() else agent_status,
 				false
 			)
@@ -1457,6 +1520,23 @@ func _run_self_checks() -> bool:
 	if bool(invalid_agent_start.get("started", true)):
 		push_error("Studio agent bridge accepted an unknown provider")
 		return false
+	if provider_button == null or not PROVIDERS.has(agent_provider):
+		push_error("Studio has no valid agent provider selected")
+		return false
+	var first_provider := agent_provider
+	var seen_providers := {}
+	for _step in PROVIDERS.size():
+		seen_providers[agent_provider] = true
+		if provider_button.text != _provider_label():
+			push_error("Studio provider button does not match the selection")
+			return false
+		_cycle_agent_provider()
+	if agent_provider != first_provider:
+		push_error("Cycling every provider should return to the first")
+		return false
+	if seen_providers.size() != PROVIDERS.size():
+		push_error("Studio did not offer every supported provider")
+		return false
 	if not memory_loaded or memory_total <= 0:
 		push_error("Studio did not load project memory")
 		return false
@@ -1505,7 +1585,7 @@ func _run_self_checks() -> bool:
 		return false
 	var write_start: Dictionary = agent_bridge.call(
 		"start",
-		"antigravity",
+		agent_provider,
 		agent_access,
 		ProjectSettings.globalize_path("res://../.."),
 		"self check"
@@ -1685,9 +1765,13 @@ func _draw_top_bar(w: float, inspector_x: float) -> void:
 	_badge(Vector2(RAIL_W + 276, 17), "DRAFT", CYAN, false)
 
 	var provider_x := inspector_x + 17.0
-	_live_dot(Vector2(provider_x + 4, 27), SAGE)
-	_text("Antigravity", Vector2(provider_x + 17, 25), 11, TEXT)
-	_text("connected", Vector2(provider_x + 17, 40), 10, MUTED)
+	_live_dot(Vector2(provider_x + 4, 29), SAGE if agent_running else MUTED)
+	_text(
+		"running" if agent_running else "selected provider",
+		Vector2(provider_x + 17, 47),
+		10,
+		MUTED
+	)
 
 
 func _draw_left_rail(command_y: float) -> void:
@@ -1872,7 +1956,7 @@ func _draw_plan_review(inspector_x: float, command_y: float) -> void:
 	_text("Plans", Vector2(x, 88), 11, MUTED)
 	_text("Implementation plan", Vector2(x, 116), 22, TEXT)
 	_text(
-		"Prepared by Antigravity · read-only planning session",
+		"Prepared by %s · read-only planning session" % _provider_label(),
 		Vector2(x, 137),
 		11,
 		MUTED
@@ -2131,7 +2215,7 @@ func _draw_command_bar(inspector_x: float, command_y: float) -> void:
 	_text("Ask Hexloom", Vector2(50, command_y + 29), 11, TEXT)
 	_text(
 		(
-			"Antigravity will edit project files"
+			"%s will edit project files" % _provider_label()
 			if writing
 			else "Describe a change, then review the plan"
 		),

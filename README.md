@@ -108,10 +108,15 @@ The preview supports mouse orbit, wheel zoom, keyboard camera controls, camera
 reset, and object/material inspection modes.
 
 The Studio command field is connected to the native `HexloomAgentBridge`.
-`Create Plan` starts the authenticated Antigravity CLI in read-only planning
-mode on a background thread, then streams normalized session, message, tool,
-completion, and failure events into the activity view without blocking Godot.
-`Stop` cancels the complete agent process group.
+`Create Plan` starts the selected provider CLI in read-only planning mode on a
+background thread, then streams normalized session, message, tool, completion,
+and failure events into the activity view without blocking Godot. `Stop`
+cancels the complete agent process group.
+
+The provider is chosen in the top right and defaults to Claude Code; Codex,
+Gemini CLI, and Antigravity are the other options, and
+`HEXLOOM_AGENT_PROVIDER` sets the starting choice. Nothing outside the launch
+plan depends on which one is running.
 
 Access is a visible choice, not a hidden setting. The scope control beside the
 command field switches between `Plan only` and `Can edit files`; the second
