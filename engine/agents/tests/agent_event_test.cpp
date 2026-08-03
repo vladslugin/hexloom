@@ -38,6 +38,47 @@ int run_agent_event_tests() {
         "Claude text and tool use should normalize in order"
     );
 
+    // Shapes taken from a real authenticated Claude Code run.
+    const auto allowed_quota = hexloom::agents::normalize_agent_event(
+        AgentProvider::claude,
+        R"({"type":"rate_limit_event","rate_limit_info":{"status":"allowed","rateLimitType":"five_hour"},"session_id":"s1"})"
+    );
+    check(
+        allowed_quota.empty(),
+        "an allowing rate limit report should not become execution history"
+    );
+
+    const auto limited_quota = hexloom::agents::normalize_agent_event(
+        AgentProvider::claude,
+        R"({"type":"rate_limit_event","rate_limit_info":{"status":"rejected"},"session_id":"s1"})"
+    );
+    check(
+        limited_quota.size() == 1 &&
+            limited_quota.front().text == "Provider rate limit: rejected",
+        "a refusing rate limit report should be readable"
+    );
+
+    const auto claude_result = hexloom::agents::normalize_agent_event(
+        AgentProvider::claude,
+        R"({"is_error":false,"session_id":"s1","subtype":"success","result":"READY","type":"result"})"
+    );
+    check(
+        claude_result.size() == 1 &&
+            claude_result.front().type == AgentEventType::completed &&
+            claude_result.front().text == "READY",
+        "a successful Claude result should complete with its text"
+    );
+
+    const auto claude_failure = hexloom::agents::normalize_agent_event(
+        AgentProvider::claude,
+        R"({"is_error":true,"session_id":"s1","subtype":"success","result":"Not logged in","type":"result"})"
+    );
+    check(
+        claude_failure.size() == 1 &&
+            claude_failure.front().type == AgentEventType::failed,
+        "is_error should outrank a success subtype"
+    );
+
     AgentEventStream antigravity(AgentProvider::antigravity);
     auto first = antigravity.feed(
         R"({"event":"init","conversation_id":"agy-1"})"

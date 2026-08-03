@@ -175,6 +175,22 @@ constexpr std::size_t maximum_pending_bytes = 1024 * 1024;
             raw
         )};
     }
+    // Claude reports quota accounting alongside the work. While the quota
+    // allows the run this is not execution history, and surfacing it would
+    // put a protocol word in front of the creator for no reason.
+    if (type == "rate_limit_event") {
+        const auto status = scalar(root["rate_limit_info"], "status");
+        if (status.empty() || status == "allowed") {
+            return {};
+        }
+        return {event(
+            AgentProvider::claude,
+            AgentEventType::progress,
+            session_id,
+            "Provider rate limit: " + status,
+            raw
+        )};
+    }
     if (type == "result") {
         const bool failed =
             root["is_error"] && root["is_error"].as<bool>();
