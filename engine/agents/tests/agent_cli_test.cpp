@@ -4,13 +4,13 @@
 #include <stdexcept>
 #include <string>
 
-int run_process_child(std::string_view mode);
+int run_process_child(int argc, char** argv);
 int run_process_runner_tests(const std::string& executable);
 int run_agent_event_tests();
 
 int main(int argc, char** argv) {
-    if (argc == 2) {
-        const int child_result = run_process_child(argv[1]);
+    if (argc >= 2) {
+        const int child_result = run_process_child(argc, argv);
         if (child_result >= 0) {
             return child_result;
         }

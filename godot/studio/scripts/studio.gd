@@ -24,6 +24,8 @@ var mono: Font
 var command_field: LineEdit
 var run_button: Button
 var pause_button: Button
+var access_button: Button
+var agent_access := "read_only"
 var plan_document: RichTextLabel
 var plan_back_button: Button
 var plan_copy_button: Button
@@ -198,6 +200,13 @@ func _create_controls() -> void:
 	)
 	run_button.pressed.connect(func() -> void: _run_weave(command_field.text))
 	add_child(run_button)
+
+	access_button = Button.new()
+	access_button.focus_mode = Control.FOCUS_ALL
+	access_button.add_theme_font_size_override("font_size", 11)
+	access_button.pressed.connect(_toggle_agent_access)
+	add_child(access_button)
+	_refresh_access_button()
 
 	pause_button = Button.new()
 	pause_button.text = "Ⅱ  Pause"
@@ -821,9 +830,11 @@ func _layout_controls() -> void:
 	preview_reset_button.size = Vector2(58, 28)
 	command_field.position = Vector2(RAIL_W + 24.0, command_y + 19.0)
 	command_field.size = Vector2(
-		maxf(320.0, inspector_x - RAIL_W - 252.0),
+		maxf(280.0, inspector_x - RAIL_W - 414.0),
 		44.0
 	)
+	access_button.position = Vector2(inspector_x - 300.0, command_y + 19.0)
+	access_button.size = Vector2(154.0, 44.0)
 	run_button.position = Vector2(inspector_x - 138.0, command_y + 19.0)
 	run_button.size = Vector2(122.0, 44.0)
 	pause_button.position = Vector2(inspector_x - 110.0, 9.0)
@@ -898,6 +909,59 @@ func _panel(
 	)
 
 
+func _toggle_agent_access() -> void:
+	if agent_running:
+		toast_text = "Stop the current run before changing what it may touch."
+		toast_until = Time.get_ticks_msec() + 2800
+		queue_redraw()
+		return
+	agent_access = (
+		"workspace_write" if agent_access == "read_only" else "read_only"
+	)
+	_refresh_access_button()
+	queue_redraw()
+
+
+# Write access has to read as a deliberate, visible choice rather than a
+# setting the creator can pass without noticing.
+func _refresh_access_button() -> void:
+	var writing := agent_access == "workspace_write"
+	access_button.text = "✎  CAN EDIT FILES" if writing else "◇  PLAN ONLY"
+	var background := AMBER if writing else SURFACE
+	access_button.add_theme_color_override(
+		"font_color",
+		BG if writing else MUTED
+	)
+	access_button.add_theme_color_override(
+		"font_hover_color",
+		BG if writing else TEXT
+	)
+	access_button.add_theme_color_override(
+		"font_focus_color",
+		BG if writing else TEXT
+	)
+	access_button.add_theme_stylebox_override(
+		"normal",
+		_style(background, AMBER if writing else BORDER, 6, 12, 0)
+	)
+	access_button.add_theme_stylebox_override(
+		"hover",
+		_style(
+			background.lightened(0.08) if writing else RAISED,
+			AMBER if writing else MUTED,
+			6,
+			12,
+			0
+		)
+	)
+	access_button.add_theme_stylebox_override(
+		"focus",
+		_style(background, AMBER, 6, 12, 0, 2)
+	)
+	if run_button != null and not agent_running:
+		run_button.text = "MAKE CHANGES  ↵" if writing else "CREATE PLAN  ↵"
+
+
 func _run_weave(text: String) -> void:
 	if text.strip_edges().is_empty():
 		toast_text = "Describe a change and Hexloom will prepare the plan."
@@ -916,20 +980,33 @@ func _run_weave(text: String) -> void:
 		return
 
 	var project_root := ProjectSettings.globalize_path("res://../..").simplify_path()
-	var planning_prompt := (
-		"You are Hexloom's game design orchestrator. Create a concise, "
-		+ "implementation-ready plan for this direction:\n\n"
-		+ text.strip_edges()
-		+ "\n\nDo not edit files. Return ordered steps, affected gameplay systems, "
-		+ "artifacts to produce, risks, and validation checks. Respect the existing "
-		+ "project style and mobile constraints."
-	)
+	var writing := agent_access == "workspace_write"
+	var agent_prompt := ""
+	if writing:
+		agent_prompt = (
+			"You are Hexloom's game engineer. Implement this direction in the "
+			+ "project:\n\n"
+			+ text.strip_edges()
+			+ "\n\nChange the smallest set of files that satisfies it. Respect the "
+			+ "existing project style and mobile constraints. Add or update tests "
+			+ "for what you change, and finish by reporting every file you touched "
+			+ "and why."
+		)
+	else:
+		agent_prompt = (
+			"You are Hexloom's game design orchestrator. Create a concise, "
+			+ "implementation-ready plan for this direction:\n\n"
+			+ text.strip_edges()
+			+ "\n\nDo not edit files. Return ordered steps, affected gameplay systems, "
+			+ "artifacts to produce, risks, and validation checks. Respect the existing "
+			+ "project style and mobile constraints."
+		)
 	var result: Dictionary = agent_bridge.call(
 		"start",
 		"antigravity",
-		"read_only",
+		agent_access,
 		project_root,
-		planning_prompt
+		agent_prompt
 	)
 	if not bool(result.get("started", false)):
 		toast_text = str(result.get("error", "Could not start Antigravity."))
@@ -940,19 +1017,29 @@ func _run_weave(text: String) -> void:
 	agent_running = true
 	_set_workspace_view("workshop")
 	agent_progress = 0.08
-	agent_status = "Opening a planning session"
+	agent_status = (
+		"Opening a workspace session" if writing else "Opening a planning session"
+	)
 	run_button.disabled = true
-	run_button.text = "PLANNING…"
+	run_button.text = "WORKING…" if writing else "PLANNING…"
 	pause_button.text = "■  Stop"
 	activity_events.clear()
 	_add_activity_event(
 		"OR",
-		LIVE,
+		AMBER if writing else LIVE,
 		"Orchestrator",
-		"Direction received; opening Antigravity in read-only mode",
+		(
+			"Direction received; Antigravity may edit project files"
+			if writing
+			else "Direction received; opening Antigravity in read-only mode"
+		),
 		true
 	)
-	toast_text = "Antigravity is preparing the build plan."
+	toast_text = (
+		"Antigravity is changing the project."
+		if writing
+		else "Antigravity is preparing the build plan."
+	)
 	toast_until = Time.get_ticks_msec() + 2600
 	queue_redraw()
 
@@ -977,8 +1064,8 @@ func _poll_agent() -> void:
 	if agent_running and not still_running:
 		agent_running = false
 		run_button.disabled = false
-		run_button.text = "CREATE PLAN  ↵"
 		pause_button.text = "Ⅱ  Pause"
+		_refresh_access_button()
 
 
 func _handle_agent_event(event: Dictionary) -> void:
@@ -1231,6 +1318,9 @@ func _handle_automation_args() -> void:
 		if argument == "--material-preview":
 			_set_preview_mode(true)
 			continue
+		if argument == "--write-preview":
+			_toggle_agent_access()
+			continue
 		if argument == "--plan-preview":
 			latest_plan_text = (
 				"# Colder ceremonial shrine\n\n"
@@ -1259,7 +1349,7 @@ func _handle_automation_args() -> void:
 			_set_workspace_view("plan")
 			continue
 		if argument == "--smoke-test":
-			if not _run_self_checks():
+			if not await _run_self_checks():
 				get_tree().quit(1)
 				return
 			get_tree().quit(0)
@@ -1315,6 +1405,42 @@ func _run_self_checks() -> bool:
 	)
 	if bool(invalid_agent_start.get("started", true)):
 		push_error("Studio agent bridge accepted an unknown provider")
+		return false
+	if access_button == null or agent_access != "read_only":
+		push_error("Studio must start with read-only agent access")
+		return false
+	_toggle_agent_access()
+	if (
+		agent_access != "workspace_write"
+		or not access_button.text.contains("EDIT")
+		or not run_button.text.contains("CHANGES")
+	):
+		push_error("Studio write access is not reflected in its controls")
+		return false
+	var write_start: Dictionary = agent_bridge.call(
+		"start",
+		"antigravity",
+		agent_access,
+		ProjectSettings.globalize_path("res://../.."),
+		"self check"
+	)
+	if not bool(write_start.get("started", false)):
+		push_error(
+			"Studio agent bridge rejected workspace write access: "
+			+ str(write_start.get("error", ""))
+		)
+		return false
+	agent_bridge.call("cancel")
+	var settle_frames := 0
+	while bool(agent_bridge.call("is_running")) and settle_frames < 600:
+		settle_frames += 1
+		await get_tree().process_frame
+	if bool(agent_bridge.call("is_running")):
+		push_error("Studio agent bridge did not stop after cancellation")
+		return false
+	_toggle_agent_access()
+	if agent_access != "read_only" or not access_button.text.contains("PLAN"):
+		push_error("Studio did not return to read-only access")
 		return false
 	if (
 		preview_object_button == null
@@ -1883,10 +2009,27 @@ func _draw_command_bar(inspector_x: float, command_y: float) -> void:
 		BORDER,
 		1.0
 	)
+	var writing := agent_access == "workspace_write"
 	_text("⌘", Vector2(24, command_y + 36), 18, LIVE, true)
 	_text("Ask Hexloom", Vector2(50, command_y + 29), 11, TEXT)
-	_text("Describe a change, then review the plan", Vector2(50, command_y + 47), 10, MUTED)
-	_text("scope: world", Vector2(inspector_x + 20, command_y + 31), 10, MUTED)
+	_text(
+		(
+			"Antigravity will edit project files"
+			if writing
+			else "Describe a change, then review the plan"
+		),
+		Vector2(50, command_y + 47),
+		10,
+		MUTED
+	)
+	# The scope line names the permission in words as well as colour, because
+	# status must never be carried by colour alone.
+	_text(
+		"scope: project files" if writing else "scope: read-only",
+		Vector2(inspector_x + 20, command_y + 31),
+		10,
+		AMBER if writing else MUTED
+	)
 	_text("⌘ K  commands", Vector2(inspector_x + 20, command_y + 51), 10, DIM)
 
 

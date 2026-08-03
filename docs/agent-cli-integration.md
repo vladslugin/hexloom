@@ -88,13 +88,29 @@ each entry is quoted using the parsing rules of the Microsoft C runtime. The
 prompt therefore still arrives as a single argument regardless of its contents.
 `PATH` and `PATHEXT` are searched directly rather than through a shell.
 
-Batch scripts are refused. A `.cmd` or `.bat` file cannot start without
-`cmd.exe`, which would re-parse the command line and let prompt text become
-shell syntax — exactly what boundary rule 6 exists to prevent. This matters in
-practice: a provider CLI installed through npm lands as a `.cmd` shim on
-Windows, so those installations are not yet launchable and the user is told why.
-Running such a provider safely needs cmd-specific escaping and is deliberately
-left for a later change rather than approximated now.
+Batch scripts need `cmd.exe`, because a `.cmd` or `.bat` file has no entry
+point of its own. This path cannot be avoided: a provider CLI installed through
+npm lands as a `.cmd` shim on Windows. It is also where boundary rule 6 is
+easiest to lose, so the escaping is deliberate.
+
+`cmd.exe` parses the text **twice**: once for the line that starts the batch
+file, and again for the line inside it that forwards `%*` to the real program.
+A single caret only survives the first pass, so every metacharacter is written
+`^^^&`, which becomes `^&` and then a literal `&`. Carets cannot protect
+`%NAME%`, because expansion happens before carets are considered; a doubled
+caret placed just after the percent spoils the variable name on both passes
+instead. Arguments are argv-quoted first, so after cmd is finished the child's
+own C runtime still receives an ordinary quoted command line.
+
+`cmd.exe` is taken from the system directory rather than `%COMSPEC%`, and is
+invoked with `/d` so no registry AutoRun command can run, and `/v:off` so `!`
+cannot become delayed expansion.
+
+This is the part of the supervisor most worth distrusting — the same class of
+bug as Node's CVE-2024-27980, which that project resolved by refusing batch
+files outright. The test suite therefore sends adversarial arguments through a
+real shim that forwards `%*`, and asserts that quotes, `&`, `|`, `%`, and
+`%PATH%` all arrive as literal text and that an injected `echo` never runs.
 
 ## Normalized event stream
 

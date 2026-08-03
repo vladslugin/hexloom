@@ -12,8 +12,9 @@ account login, so Hexloom does
 not require an API key or handle provider credentials. The C++ agent layer
 builds safe structured launch plans and has a macOS, Linux, and Windows process
 supervisor with separated streaming output, cancellation, timeouts, and
-child-process cleanup. On Windows, providers installed as `.cmd` shims are
-refused rather than launched through `cmd.exe`; see
+child-process cleanup. Providers installed as `.cmd` shims run through
+`cmd.exe` with escaping that survives its two parsing passes, so a prompt can
+never become shell syntax; see
 [docs/agent-cli-integration.md](docs/agent-cli-integration.md).
 
 Every change is checked on Linux against the C++ test suite, the CLI, and a
@@ -95,7 +96,13 @@ The Studio command field is connected to the native `HexloomAgentBridge`.
 `Create Plan` starts the authenticated Antigravity CLI in read-only planning
 mode on a background thread, then streams normalized session, message, tool,
 completion, and failure events into the activity view without blocking Godot.
-`Stop` cancels the complete agent process group. Hexloom never reads or stores
+`Stop` cancels the complete agent process group.
+
+Access is a visible choice, not a hidden setting. The scope control beside the
+command field switches between `Plan only` and `Can edit files`; the second
+sends `workspace_write` to the bridge so the agent may change the project. The
+button, the primary action, and the scope line all change together, and the
+scope is named in words as well as colour. Hexloom never reads or stores
 the provider's login credentials. Completed responses open in the Plans
 workspace as a selectable, scrollable document with readable headings and a
 one-click copy action; the event stream remains a concise execution history

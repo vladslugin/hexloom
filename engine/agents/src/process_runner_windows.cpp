@@ -178,6 +178,54 @@ void append_quoted(std::wstring& command_line, const std::wstring& argument) {
     command_line.push_back(L'"');
 }
 
+// cmd.exe parses the text twice: once for the line that starts the batch file,
+// and again for the line inside it that forwards %* to the real program. One
+// caret only survives the first pass, so a metacharacter needs a caret that is
+// itself escaped -- "^^^&" becomes "^&" becomes a literal "&". Percent is not
+// caret-escapable; doubling it is what stops %VAR% from expanding.
+//
+// Everything here is applied on top of argv quoting, so cmd is left with
+// nothing to interpret and the child's C runtime still sees a normal quoted
+// command line.
+void append_cmd_escaped(std::wstring& command_line, const std::wstring& text) {
+    for (const wchar_t character : text) {
+        switch (character) {
+            // cmd expands %NAME% before it ever looks at carets, so a caret in
+            // front of the percent cannot help. A caret placed just after it
+            // spoils the variable name instead, and doubling that caret makes
+            // it survive the first pass so the second pass is spoiled too.
+            case L'%':
+                command_line.append(L"%^^");
+                continue;
+            case L'(':
+            case L')':
+            case L'!':
+            case L'^':
+            case L'"':
+            case L'<':
+            case L'>':
+            case L'&':
+            case L'|':
+                command_line.append(L"^^^");
+                break;
+            default:
+                break;
+        }
+        command_line.push_back(character);
+    }
+}
+
+// Taken from the system directory rather than %COMSPEC%, which the environment
+// could point somewhere else.
+[[nodiscard]] std::wstring command_processor() {
+    wchar_t buffer[MAX_PATH];
+    const UINT length = GetSystemDirectoryW(buffer, MAX_PATH);
+    if (length == 0 || length >= MAX_PATH) {
+        return L"cmd.exe";
+    }
+    return std::wstring(buffer, length) + L"\\cmd.exe";
+}
+
 [[nodiscard]] bool has_separator(const std::wstring& value) {
     return value.find_first_of(L"\\/") != std::wstring::npos;
 }
@@ -323,25 +371,34 @@ ProcessResult run_process(
         return result;
     }
 
-    // A batch file cannot be started without cmd.exe, which would re-parse the
-    // command line and defeat the argv-only guarantee that keeps prompt text
-    // from being read as shell syntax.
+    // A batch file has no entry point of its own; only cmd.exe can start one.
+    // Provider CLIs installed through npm land as .cmd shims on Windows, so
+    // this path has to exist -- but cmd re-parses the command line, and the
+    // prompt must not survive that as syntax. Every argument is argv-quoted
+    // first and then caret-escaped, which leaves cmd nothing to interpret.
     const std::wstring extension = lowercase_extension(resolved);
-    if (extension == L".bat" || extension == L".cmd") {
-        result.launch_error =
-            "'" + request.executable +
-            "' resolves to a batch script (" + narrow(extension) +
-            "), which Hexloom refuses to launch because it would require a "
-            "shell to interpret the prompt. Install a native executable, or "
-            "point Hexloom at the interpreter directly.";
-        return result;
-    }
+    const bool is_batch = extension == L".bat" || extension == L".cmd";
+    const std::wstring application = is_batch ? command_processor() : resolved;
 
     std::wstring command_line;
-    append_quoted(command_line, resolved);
-    for (const auto& argument : request.arguments) {
-        command_line.push_back(L' ');
-        append_quoted(command_line, widen(argument));
+    if (is_batch) {
+        append_quoted(command_line, application);
+        // /d skips any AutoRun command the registry may hold, and /v:off keeps
+        // '!' from becoming delayed expansion.
+        command_line += L" /d /v:off /c ";
+        std::wstring inner;
+        append_quoted(inner, resolved);
+        for (const auto& argument : request.arguments) {
+            inner.push_back(L' ');
+            append_quoted(inner, widen(argument));
+        }
+        append_cmd_escaped(command_line, inner);
+    } else {
+        append_quoted(command_line, resolved);
+        for (const auto& argument : request.arguments) {
+            command_line.push_back(L' ');
+            append_quoted(command_line, widen(argument));
+        }
     }
 
     Handle job(CreateJobObjectW(nullptr, nullptr));
@@ -420,7 +477,7 @@ ProcessResult run_process(
     // Suspended so the job assignment lands before the child can spawn
     // anything of its own.
     const BOOL started = CreateProcessW(
-        resolved.c_str(),
+        application.c_str(),
         mutable_command_line.data(),
         nullptr,
         nullptr,
