@@ -1,5 +1,6 @@
 #include "hexloom/agents/agent_cli.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -53,8 +54,44 @@ int main(int argc, char** argv) {
         "implement the selected task"
     );
     check(
-        claude.arguments[5] == "acceptEdits",
+        claude.arguments[6] == "acceptEdits",
         "Claude write access should use acceptEdits"
+    );
+    check(
+        claude.arguments[1] == "implement the selected task",
+        "Claude prompt must precede the variadic tool allowlist"
+    );
+    // --allowedTools swallows every value that follows it, so anything placed
+    // after the allowlist is read as another pattern rather than a prompt.
+    const auto allowlist = std::ranges::find(
+        claude.arguments,
+        "--allowedTools"
+    );
+    check(
+        allowlist != claude.arguments.end(),
+        "Claude write access should allow the project's verification commands"
+    );
+    if (allowlist != claude.arguments.end()) {
+        check(
+            std::ranges::find(claude.arguments, "Bash(ctest *)") !=
+                claude.arguments.end(),
+            "an agent that may write must be able to run the tests"
+        );
+        check(
+            allowlist < std::ranges::find(claude.arguments, "Bash(cmake *)"),
+            "tool patterns must follow the allowlist flag"
+        );
+    }
+
+    const auto claude_plan = hexloom::agents::make_cli_launch_plan(
+        AgentProvider::claude,
+        AgentAccess::read_only,
+        "review the specification"
+    );
+    check(
+        std::ranges::find(claude_plan.arguments, "--allowedTools") ==
+            claude_plan.arguments.end(),
+        "read-only planning should grant no commands"
     );
     check(
         hexloom::agents::parse_agent_provider("claude") ==

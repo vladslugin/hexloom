@@ -2,8 +2,26 @@
 
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace hexloom::agents {
+namespace {
+
+// Workspace write access exists so an agent can finish a change, and a change
+// is not finished until it builds and its tests pass. Granting edits without
+// these leaves the agent able to alter the project but unable to check itself,
+// which is worse than not letting it write at all. The list stays narrow: the
+// project's own build and test commands, plus read-only git inspection.
+constexpr std::string_view workspace_verification_commands[]{
+    "cmake *",
+    "ctest *",
+    "git status *",
+    "git diff *",
+};
+
+}  // namespace
 
 std::string_view to_string(AgentProvider provider) {
     switch (provider) {
@@ -83,24 +101,36 @@ AgentLaunchPlan make_cli_launch_plan(
                 .transport = AgentTransport::json_lines,
                 .reuses_user_login = true,
             };
-        case AgentProvider::claude:
+        case AgentProvider::claude: {
+            // The prompt is placed first because --allowedTools below consumes
+            // every remaining value on the command line; a prompt after it is
+            // read as another tool pattern and the run dies with "Input must
+            // be provided".
+            std::vector<std::string> arguments{
+                "-p",
+                std::move(prompt),
+                "--output-format",
+                "stream-json",
+                "--verbose",
+                "--permission-mode",
+                access == AgentAccess::read_only ? "plan" : "acceptEdits",
+            };
+            if (access == AgentAccess::workspace_write) {
+                arguments.emplace_back("--allowedTools");
+                for (const auto command : workspace_verification_commands) {
+                    arguments.emplace_back(
+                        "Bash(" + std::string(command) + ")"
+                    );
+                }
+            }
             return {
                 .provider = provider,
                 .executable = "claude",
-                .arguments = {
-                    "-p",
-                    "--output-format",
-                    "stream-json",
-                    "--verbose",
-                    "--permission-mode",
-                    access == AgentAccess::read_only
-                        ? "plan"
-                        : "acceptEdits",
-                    std::move(prompt),
-                },
+                .arguments = std::move(arguments),
                 .transport = AgentTransport::json_lines,
                 .reuses_user_login = true,
             };
+        }
         case AgentProvider::gemini:
             return {
                 .provider = provider,
