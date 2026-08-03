@@ -75,12 +75,26 @@ Google disabled `Login with Google` for consumer Gemini CLI accounts on
 2026-06-18. The Gemini adapter remains available for API-key, Standard, and
 Enterprise configurations.
 
-The first process-supervisor layer launches argv directly on macOS/Linux,
-captures and streams stdout and stderr separately, preserves exit status,
-supports cancellation, terminates the complete child process group, and
-enforces timeouts. Windows has the same public interface; its native backend is
-the next platform task. Event normalization and asynchronous UI ownership come
-after that backend.
+The process-supervisor layer launches argv directly on macOS, Linux, and
+Windows. It captures and streams stdout and stderr separately, preserves exit
+status, supports cancellation, terminates the complete child process tree, and
+enforces timeouts. macOS and Linux use `fork`/`execvp` with a process group;
+Windows uses `CreateProcessW` with a job object that carries
+`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, so a cancelled run takes every process the
+agent started with it.
+
+Windows has no `execvp`, so the argv array is joined into one command line and
+each entry is quoted using the parsing rules of the Microsoft C runtime. The
+prompt therefore still arrives as a single argument regardless of its contents.
+`PATH` and `PATHEXT` are searched directly rather than through a shell.
+
+Batch scripts are refused. A `.cmd` or `.bat` file cannot start without
+`cmd.exe`, which would re-parse the command line and let prompt text become
+shell syntax — exactly what boundary rule 6 exists to prevent. This matters in
+practice: a provider CLI installed through npm lands as a `.cmd` shim on
+Windows, so those installations are not yet launchable and the user is told why.
+Running such a provider safely needs cmd-specific escaping and is deliberately
+left for a later change rather than approximated now.
 
 ## Normalized event stream
 

@@ -10,9 +10,11 @@ Coding agents are designed as replaceable local providers. A user-installed
 Codex, Claude Code, Gemini CLI, or Antigravity CLI can reuse its existing
 account login, so Hexloom does
 not require an API key or handle provider credentials. The C++ agent layer
-builds safe structured launch plans and has a macOS/Linux process supervisor
-with separated streaming output, cancellation, timeouts, and child-process
-cleanup.
+builds safe structured launch plans and has a macOS, Linux, and Windows process
+supervisor with separated streaming output, cancellation, timeouts, and
+child-process cleanup. On Windows, providers installed as `.cmd` shims are
+refused rather than launched through `cmd.exe`; see
+[docs/agent-cli-integration.md](docs/agent-cli-integration.md).
 
 Every change is checked on Linux against the C++ test suite, the CLI, and a
 real headless Godot 4.7.1 process loading the native GDExtension.
