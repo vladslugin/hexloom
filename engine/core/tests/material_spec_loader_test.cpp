@@ -5,6 +5,7 @@
 #include <string_view>
 
 int material_request_tests();
+int project_memory_tests();
 
 namespace {
 
@@ -23,7 +24,7 @@ namespace {
 }  // namespace
 
 int main() {
-    int failures = material_request_tests();
+    int failures = material_request_tests() + project_memory_tests();
     const auto check = [&failures](bool condition, const char* message) {
         if (!condition) {
             std::cerr << "FAIL: " << message << '\n';

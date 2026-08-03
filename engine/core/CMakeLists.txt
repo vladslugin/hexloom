@@ -2,6 +2,7 @@ add_library(hexloom_core STATIC
     src/art_style.cpp
     src/material_request.cpp
     src/material_spec_loader.cpp
+    src/project_memory.cpp
 )
 
 add_library(Hexloom::Core ALIAS hexloom_core)

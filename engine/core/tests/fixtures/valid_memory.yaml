@@ -1,0 +1,23 @@
+memory:
+  - id: cold_stone_palette
+    category: visual_style
+    text: >-
+      Stone reads cold and desaturated; firelight is the only warm source in
+      the world.
+    locked: true
+  - id: broad_silhouettes
+    category: visual_style
+    text: Favor broad readable silhouettes over fine surface detail.
+  - id: shrine_traversable
+    category: mechanics
+    text: Every shrine must stay traversable from all four approaches.
+    locked: true
+  - id: mobile_triangle_budget
+    category: constraint
+    text: Scenes stay under 18k triangles so mobile parity is never in doubt.
+    locked: true
+  - id: deterministic_textures_first
+    category: decision
+    text: >-
+      Textures come from the deterministic provider until an image provider is
+      audited.

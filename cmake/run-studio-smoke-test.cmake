@@ -71,6 +71,13 @@ if(NOT studio_output MATCHES "HEXLOOM_STUDIO_ARTIFACT_LOADED")
     )
 endif()
 
+if(NOT studio_output MATCHES "HEXLOOM_STUDIO_MEMORY_LOADED")
+    message(
+        FATAL_ERROR
+        "Hexloom Studio did not load project memory:\n${studio_output}"
+    )
+endif()
+
 if(NOT studio_output MATCHES "HEXLOOM_STUDIO_SELF_CHECKS_PASSED")
     message(
         FATAL_ERROR

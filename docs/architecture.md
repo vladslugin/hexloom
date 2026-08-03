@@ -45,6 +45,19 @@ a polled, mutex-protected queue. Godot objects never cross the worker-thread
 boundary. Cancellation is forwarded to the process supervisor, which
 terminates the complete child process group.
 
+## Project memory
+
+`ProjectMemory` is the second durable contract. It carries what a world has
+already decided — visual style, mechanics, constraints, and prior choices — as
+a validated list rather than prose, so every agent receives the same context
+without the creator restating it. Entries may be `locked`, which an agent must
+treat as non-negotiable.
+
+`compile_agent_prompt` turns memory, an access mode, and one direction into the
+text a provider receives. It lives in the agent layer, not in the Godot script,
+so the same wording reaches every front end and can be tested and inspected
+without a running editor or an installed provider.
+
 ## Texture generation providers
 
 Texture generation is represented by a provider-independent

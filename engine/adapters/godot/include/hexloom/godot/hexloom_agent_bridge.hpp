@@ -31,6 +31,14 @@ public:
     [[nodiscard]] bool is_running() const;
     [[nodiscard]] godot::Array poll_events();
 
+    // Loads durable project memory and builds the prompt for one direction.
+    // Studio uses the counts for display and the prompt for start().
+    [[nodiscard]] godot::Dictionary compose_prompt(
+        const godot::String& memory_path,
+        const godot::String& access,
+        const godot::String& direction
+    );
+
 protected:
     static void _bind_methods();
 

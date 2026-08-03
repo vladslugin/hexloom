@@ -26,6 +26,11 @@ var run_button: Button
 var pause_button: Button
 var access_button: Button
 var agent_access := "read_only"
+var memory_path := ""
+var memory_loaded := false
+var memory_total := 0
+var memory_locked := 0
+var memory_counts := {}
 var plan_document: RichTextLabel
 var plan_back_button: Button
 var plan_copy_button: Button
@@ -123,6 +128,49 @@ func _create_agent_bridge() -> void:
 		push_warning("HexloomAgentBridge is unavailable")
 		return
 	agent_bridge = ClassDB.instantiate("HexloomAgentBridge")
+	_load_project_memory()
+
+
+func _project_root() -> String:
+	return ProjectSettings.globalize_path("res://../..").simplify_path()
+
+
+# Memory is read through the native bridge so the C++ core stays the only
+# thing that parses it, and Studio shows what an agent will actually receive.
+func _load_project_memory() -> void:
+	memory_path = OS.get_environment("HEXLOOM_MEMORY_FILE")
+	if memory_path.is_empty():
+		memory_path = _project_root().path_join(
+			"games/material-lab/memory.yaml"
+		)
+
+	var probe: Dictionary = agent_bridge.call(
+		"compose_prompt",
+		memory_path,
+		"read_only",
+		"probe"
+	)
+	if not bool(probe.get("ok", false)):
+		memory_loaded = false
+		push_warning(
+			"Hexloom project memory unavailable: "
+			+ str(probe.get("error", ""))
+		)
+		return
+
+	memory_loaded = true
+	memory_total = int(probe.get("total", 0))
+	memory_locked = int(probe.get("locked", 0))
+	memory_counts = {
+		"visual_style": int(probe.get("visual_style", 0)),
+		"mechanics": int(probe.get("mechanics", 0)),
+		"constraint": int(probe.get("constraint", 0)),
+		"decision": int(probe.get("decision", 0))
+	}
+	print(
+		"HEXLOOM_STUDIO_MEMORY_LOADED total=%d locked=%d"
+		% [memory_total, memory_locked]
+	)
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -979,34 +1027,26 @@ func _run_weave(text: String) -> void:
 		queue_redraw()
 		return
 
-	var project_root := ProjectSettings.globalize_path("res://../..").simplify_path()
+	var project_root := _project_root()
 	var writing := agent_access == "workspace_write"
-	var agent_prompt := ""
-	if writing:
-		agent_prompt = (
-			"You are Hexloom's game engineer. Implement this direction in the "
-			+ "project:\n\n"
-			+ text.strip_edges()
-			+ "\n\nChange the smallest set of files that satisfies it. Respect the "
-			+ "existing project style and mobile constraints. Add or update tests "
-			+ "for what you change, and finish by reporting every file you touched "
-			+ "and why."
-		)
-	else:
-		agent_prompt = (
-			"You are Hexloom's game design orchestrator. Create a concise, "
-			+ "implementation-ready plan for this direction:\n\n"
-			+ text.strip_edges()
-			+ "\n\nDo not edit files. Return ordered steps, affected gameplay systems, "
-			+ "artifacts to produce, risks, and validation checks. Respect the existing "
-			+ "project style and mobile constraints."
-		)
+	var composed: Dictionary = agent_bridge.call(
+		"compose_prompt",
+		memory_path,
+		agent_access,
+		text.strip_edges()
+	)
+	if not bool(composed.get("ok", false)):
+		toast_text = str(composed.get("error", "Could not compose the prompt."))
+		toast_until = Time.get_ticks_msec() + 4200
+		queue_redraw()
+		return
+
 	var result: Dictionary = agent_bridge.call(
 		"start",
 		"antigravity",
 		agent_access,
 		project_root,
-		agent_prompt
+		str(composed.get("prompt", ""))
 	)
 	if not bool(result.get("started", false)):
 		toast_text = str(result.get("error", "Could not start Antigravity."))
@@ -1035,6 +1075,17 @@ func _run_weave(text: String) -> void:
 		),
 		true
 	)
+	if memory_loaded:
+		_add_activity_event(
+			"↗",
+			CYAN,
+			"Context",
+			"Attached %d durable decisions, %d locked" % [
+				memory_total,
+				memory_locked
+			],
+			false
+		)
 	toast_text = (
 		"Antigravity is changing the project."
 		if writing
@@ -1406,6 +1457,41 @@ func _run_self_checks() -> bool:
 	if bool(invalid_agent_start.get("started", true)):
 		push_error("Studio agent bridge accepted an unknown provider")
 		return false
+	if not memory_loaded or memory_total <= 0:
+		push_error("Studio did not load project memory")
+		return false
+	if memory_locked <= 0:
+		push_error("Studio project memory reported no locked entries")
+		return false
+	var composed: Dictionary = agent_bridge.call(
+		"compose_prompt",
+		memory_path,
+		"workspace_write",
+		"self check direction"
+	)
+	if not bool(composed.get("ok", false)):
+		push_error(
+			"Studio could not compose a prompt: "
+			+ str(composed.get("error", ""))
+		)
+		return false
+	var composed_prompt := str(composed.get("prompt", ""))
+	if (
+		not composed_prompt.contains("self check direction")
+		or not composed_prompt.contains("[locked]")
+		or not composed_prompt.contains("Implement this in the project")
+	):
+		push_error("Studio prompt is missing memory or direction")
+		return false
+	var rejected: Dictionary = agent_bridge.call(
+		"compose_prompt",
+		memory_path,
+		"read_only",
+		""
+	)
+	if bool(rejected.get("ok", true)):
+		push_error("Studio composed a prompt from an empty direction")
+		return false
 	if access_button == null or agent_access != "read_only":
 		push_error("Studio must start with read-only agent access")
 		return false
@@ -1635,11 +1721,42 @@ func _draw_left_rail(command_y: float) -> void:
 	var memory_y := command_y - 139.0
 	draw_line(Vector2(20, memory_y), Vector2(RAIL_W - 20, memory_y), BORDER, 1.0)
 	_label("Project memory", Vector2(20, memory_y + 25))
-	_text("24", Vector2(20, memory_y + 54), 24, TEXT)
-	_text("durable decisions", Vector2(57, memory_y + 50), 11, MUTED)
-	_text("visual style · 8", Vector2(20, memory_y + 77), 10, CYAN)
-	_text("mechanics · 11", Vector2(112, memory_y + 77), 10, AMBER)
-	_text("Hexloom shares this with every agent", Vector2(20, memory_y + 104), 10, MUTED)
+	if not memory_loaded:
+		_text("—", Vector2(20, memory_y + 54), 24, DIM)
+		_text("no memory file", Vector2(44, memory_y + 50), 11, MUTED)
+		_text(
+			"Agents will work without shared context",
+			Vector2(20, memory_y + 77),
+			10,
+			CORAL
+		)
+		return
+	var total_text := str(memory_total)
+	_text(total_text, Vector2(20, memory_y + 54), 24, TEXT)
+	_text(
+		"durable decisions",
+		Vector2(24.0 + total_text.length() * 15.0, memory_y + 50),
+		11,
+		MUTED
+	)
+	_text(
+		"visual style · %d" % int(memory_counts.get("visual_style", 0)),
+		Vector2(20, memory_y + 77),
+		10,
+		CYAN
+	)
+	_text(
+		"mechanics · %d" % int(memory_counts.get("mechanics", 0)),
+		Vector2(112, memory_y + 77),
+		10,
+		AMBER
+	)
+	_text(
+		"%d locked · shared with every agent" % memory_locked,
+		Vector2(20, memory_y + 104),
+		10,
+		MUTED
+	)
 
 
 func _draw_work_area(inspector_x: float, command_y: float) -> void:

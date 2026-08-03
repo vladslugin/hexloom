@@ -1,0 +1,16 @@
+memory:
+  - id: Cold_Stone
+    category: visual_style
+    text: Identifiers must stay lowercase.
+  - id: duplicated
+    category: mechanics
+    text: First use of this identifier.
+  - id: duplicated
+    category: mechanics
+    text: Second use of the same identifier.
+  - id: unknown_category
+    category: mood_board
+    text: This category is not part of the closed set.
+  - id: empty_text
+    category: decision
+    text: ""

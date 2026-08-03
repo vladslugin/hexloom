@@ -1,7 +1,9 @@
 #include "hexloom/godot/hexloom_agent_bridge.hpp"
 
 #include "hexloom/agents/agent_cli.hpp"
+#include "hexloom/agents/agent_prompt.hpp"
 #include "hexloom/agents/process_runner.hpp"
+#include "hexloom/core/project_memory.hpp"
 
 #include <godot_cpp/core/class_db.hpp>
 
@@ -198,6 +200,74 @@ godot::Array HexloomAgentBridge::poll_events() {
     return serialized;
 }
 
+godot::Dictionary HexloomAgentBridge::compose_prompt(
+    const godot::String& memory_path,
+    const godot::String& access_name,
+    const godot::String& direction
+) {
+    godot::Dictionary result;
+    result["ok"] = false;
+    result["prompt"] = godot::String();
+    result["total"] = 0;
+    result["locked"] = 0;
+    result["error"] = godot::String();
+
+    const auto access_text = to_std_string(access_name);
+    hexloom::agents::AgentAccess access;
+    if (access_text == "read_only") {
+        access = hexloom::agents::AgentAccess::read_only;
+    } else if (access_text == "workspace_write") {
+        access = hexloom::agents::AgentAccess::workspace_write;
+    } else {
+        result["error"] = godot::String("Unknown agent access mode.");
+        return result;
+    }
+
+    const auto direction_text = to_std_string(direction);
+    if (direction_text.empty()) {
+        result["error"] = godot::String("A direction must not be empty.");
+        return result;
+    }
+
+    const auto loaded =
+        hexloom::load_project_memory(to_std_string(memory_path));
+    if (!loaded.ok()) {
+        std::string message = "Project memory is unusable.";
+        if (!loaded.issues.empty()) {
+            message = loaded.issues.front().field + ": " +
+                loaded.issues.front().message;
+        }
+        result["error"] = godot::String(message.c_str());
+        return result;
+    }
+
+    const auto& memory = *loaded.memory;
+    std::size_t locked = 0;
+    for (const auto& entry : memory.entries) {
+        if (entry.locked) {
+            ++locked;
+        }
+    }
+
+    result["ok"] = true;
+    result["prompt"] = godot::String(
+        hexloom::agents::compile_agent_prompt(memory, access, direction_text)
+            .c_str()
+    );
+    result["total"] = static_cast<int>(memory.entries.size());
+    result["locked"] = static_cast<int>(locked);
+    for (const auto category : {
+             hexloom::MemoryCategory::visual_style,
+             hexloom::MemoryCategory::mechanics,
+             hexloom::MemoryCategory::constraint,
+             hexloom::MemoryCategory::decision,
+         }) {
+        result[godot::String(hexloom::to_string(category).data())] =
+            static_cast<int>(memory.count(category));
+    }
+    return result;
+}
+
 void HexloomAgentBridge::push_events(
     std::vector<hexloom::agents::AgentEvent> events
 ) {
@@ -240,6 +310,15 @@ void HexloomAgentBridge::_bind_methods() {
     godot::ClassDB::bind_method(
         godot::D_METHOD("poll_events"),
         &HexloomAgentBridge::poll_events
+    );
+    godot::ClassDB::bind_method(
+        godot::D_METHOD(
+            "compose_prompt",
+            "memory_path",
+            "access",
+            "direction"
+        ),
+        &HexloomAgentBridge::compose_prompt
     );
 }
 

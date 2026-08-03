@@ -1,6 +1,8 @@
 #include "hexloom/agents/agent_cli.hpp"
+#include "hexloom/agents/agent_prompt.hpp"
 #include "hexloom/agents/process_runner.hpp"
 #include "hexloom/core/material_spec_loader.hpp"
+#include "hexloom/core/project_memory.hpp"
 #include "hexloom/generation/texture_generator.hpp"
 
 #include <charconv>
@@ -20,6 +22,8 @@ void print_usage() {
         << "Usage:\n"
         << "  hexloom validate <game.yaml>\n"
         << "  hexloom generate-textures <game.yaml> <output-dir> [seed]\n"
+        << "  hexloom memory <memory.yaml>\n"
+        << "  hexloom compose-prompt <memory.yaml> <read|write> <direction>\n"
         << "  hexloom agent-plan <codex|claude|gemini|antigravity> "
            "<read|write> <prompt>\n"
         << "  hexloom agent-run <codex|claude|gemini|antigravity> "
@@ -106,6 +110,42 @@ int generate_command(
     return 0;
 }
 
+void print_memory_issues(
+    const std::filesystem::path& path,
+    const hexloom::MemoryLoadResult& result
+) {
+    std::cerr << "Hexloom project memory is invalid: " << path << '\n';
+    for (const auto& issue : result.issues) {
+        std::cerr << "error [" << issue.field << "]: " << issue.message << '\n';
+    }
+}
+
+int memory_command(const std::filesystem::path& memory_path) {
+    const auto loaded = hexloom::load_project_memory(memory_path);
+    if (!loaded.ok()) {
+        print_memory_issues(memory_path, loaded);
+        return 1;
+    }
+
+    const auto& memory = *loaded.memory;
+    std::cout << "Hexloom project memory: " << memory.entries.size()
+              << " durable decisions\n";
+    for (const auto category : {
+             hexloom::MemoryCategory::visual_style,
+             hexloom::MemoryCategory::mechanics,
+             hexloom::MemoryCategory::constraint,
+             hexloom::MemoryCategory::decision,
+         }) {
+        std::cout << hexloom::to_string(category) << ": "
+                  << memory.count(category) << '\n';
+    }
+    for (const auto& entry : memory.entries) {
+        std::cout << "  - [" << hexloom::to_string(entry.category) << "] "
+                  << entry.id << (entry.locked ? " (locked)" : "") << '\n';
+    }
+    return 0;
+}
+
 [[nodiscard]] std::optional<hexloom::agents::AgentAccess>
 parse_agent_access(std::string_view access_name) {
     if (access_name == "read") {
@@ -115,6 +155,35 @@ parse_agent_access(std::string_view access_name) {
         return hexloom::agents::AgentAccess::workspace_write;
     }
     return std::nullopt;
+}
+
+int compose_prompt_command(
+    const std::filesystem::path& memory_path,
+    std::string_view access_name,
+    std::string_view direction
+) {
+    const auto access = parse_agent_access(access_name);
+    if (!access.has_value()) {
+        std::cerr << "Agent access must be 'read' or 'write'.\n";
+        return 2;
+    }
+    if (direction.empty()) {
+        std::cerr << "A direction must not be empty.\n";
+        return 2;
+    }
+
+    const auto loaded = hexloom::load_project_memory(memory_path);
+    if (!loaded.ok()) {
+        print_memory_issues(memory_path, loaded);
+        return 1;
+    }
+
+    std::cout << hexloom::agents::compile_agent_prompt(
+        *loaded.memory,
+        *access,
+        direction
+    ) << '\n';
+    return 0;
 }
 
 int agent_plan_command(
@@ -226,6 +295,14 @@ int main(int argc, char** argv) {
             return 2;
         }
         return generate_command(argv[2], argv[3], seed);
+    }
+
+    if (argc == 3 && std::string_view(argv[1]) == "memory") {
+        return memory_command(argv[2]);
+    }
+
+    if (argc == 5 && std::string_view(argv[1]) == "compose-prompt") {
+        return compose_prompt_command(argv[2], argv[3], argv[4]);
     }
 
     if (argc == 5 && std::string_view(argv[1]) == "agent-plan") {

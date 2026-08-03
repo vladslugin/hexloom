@@ -53,6 +53,11 @@ ctest --preset desktop-debug
   games/material-lab/game.yaml \
   games/material-lab/generated/stone \
   42
+./build/desktop-debug/apps/cli/hexloom memory games/material-lab/memory.yaml
+./build/desktop-debug/apps/cli/hexloom compose-prompt \
+  games/material-lab/memory.yaml \
+  write \
+  "Add a respawning collectible near the shrine"
 ./build/desktop-debug/apps/cli/hexloom agent-plan \
   codex read "Review the material specification"
 ./build/desktop-debug/apps/cli/hexloom agent-run \
@@ -67,6 +72,16 @@ the native adapter compiles only the Godot classes it actually uses.
 `game.yaml` is the source of truth for the Material Lab. Both the CLI and the
 Godot GDExtension parse it through the same C++ loader and return structured
 validation issues for malformed or unsupported input.
+
+`memory.yaml` holds the durable decisions about a world: visual style,
+mechanics, constraints, and choices already made. Hexloom prepends it to every
+agent prompt, so style and constraints do not have to be restated each session.
+An entry may be marked `locked`, which tells an agent it may not be traded away
+to satisfy a request — if the direction cannot be met without breaking one, the
+agent is asked to stop and explain the conflict. Prompt composition lives in
+the C++ agent layer rather than in the Godot script, so the wording is shared
+by every front end, is covered by tests, and can be inspected with
+`hexloom compose-prompt` before any provider is involved.
 
 The art style is also structured and validated. The first profile is
 `hexloom_stylized_lowpoly`: low-poly geometry, exaggerated silhouettes, soft

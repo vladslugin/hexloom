@@ -7,6 +7,7 @@
 int run_process_child(int argc, char** argv);
 int run_process_runner_tests(const std::string& executable);
 int run_agent_event_tests();
+int run_agent_prompt_tests();
 
 int main(int argc, char** argv) {
     if (argc >= 2) {
@@ -129,6 +130,7 @@ int main(int argc, char** argv) {
 
     failures += run_process_runner_tests(argv[0]);
     failures += run_agent_event_tests();
+    failures += run_agent_prompt_tests();
     if (failures == 0) {
         std::cout << "Hexloom agent CLI tests passed.\n";
     }
